@@ -1,0 +1,7 @@
+sentinelhub
+shapely
+notebook
+matplotlib
+geopandas
+python-dotenv
+ipywidgets
