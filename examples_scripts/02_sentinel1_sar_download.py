@@ -17,7 +17,8 @@ This script covers:
 - Ascending vs Descending orbits
 - Basic SAR processing techniques
 
-Author: Learning Script
+Author: Varun Burde 
+email: varun@recycllux.com
 Date: 2025
 """
 

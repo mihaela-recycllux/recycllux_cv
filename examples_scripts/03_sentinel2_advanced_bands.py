@@ -19,7 +19,8 @@ Spectral bands and their applications:
 - B11 (1610nm): SWIR 1, moisture content
 - B12 (2190nm): SWIR 2, geology, soil
 
-Author: Learning Script
+Author: Varun Burde 
+email: varun@recycllux.com
 Date: 2025
 """
 

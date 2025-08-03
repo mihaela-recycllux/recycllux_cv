@@ -9,7 +9,8 @@ This script demonstrates how to perform temporal analysis using satellite data:
 - Urban expansion tracking
 - Disaster monitoring (floods, fires, etc.)
 
-Author: Learning Script
+Author: Varun Burde 
+email: varun@recycllux.com
 Date: 2025
 """
 

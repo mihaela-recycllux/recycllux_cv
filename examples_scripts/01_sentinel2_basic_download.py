@@ -10,7 +10,8 @@ It covers:
 - Individual band downloads±
 - Different processing levels (L1C vs L2A)
 
-Author: Learning Script
+Author: Varun Burde 
+email: varun@recycllux.com
 Date: 2025
 """
 

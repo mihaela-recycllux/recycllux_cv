@@ -10,7 +10,8 @@ for further analysis in GIS software or other applications:
 - CSV data export
 - Integration with external tools
 
-Author: Learning Script
+Author: Varun Burde 
+email: varun@recycllux.com
 Date: 2025
 """
 

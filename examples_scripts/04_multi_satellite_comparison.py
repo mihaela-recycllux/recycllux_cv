@@ -10,7 +10,8 @@ This script demonstrates how to download and compare data from different satelli
 
 It shows how different satellites provide complementary information for various applications.
 
-Author: Learning Script
+Author: Varun Burde 
+email: varun@recycllux.com
 Date: 2025
 """
 
