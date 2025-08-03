@@ -61,11 +61,9 @@ Create a virtual environment and install dependencies:
 python -m venv satellite_env
 source satellite_env/bin/activate  # On Windows: satellite_env\Scripts\activate
 
-# Install basic dependencies
-pip install sentinelhub matplotlib numpy pandas python-dotenv
+# Install dependencies
+pip install -r requirements.txt
 
-# For advanced export functionality (optional)
-pip install rasterio xarray netcdf4 geopandas
 ```
 
 ### 2. Sentinel Hub Account Setup
@@ -83,27 +81,6 @@ SH_CLIENT_ID=your_client_id_here
 SH_CLIENT_SECRET=your_client_secret_here
 ```
 
-**Alternative:** Set up using the sentinelhub configuration:
-```bash
-sentinelhub.config --show
-sentinelhub.config --sh_client_id your_client_id
-sentinelhub.config --sh_client_secret your_client_secret
-```
-
-## Dependencies
-
-### Core Dependencies (Required)
-- `sentinelhub` - Main library for satellite data access
-- `matplotlib` - Plotting and visualization
-- `numpy` - Numerical computations
-- `pandas` - Data manipulation
-- `python-dotenv` - Environment variable management
-
-### Optional Dependencies (For advanced features)
-- `rasterio` - Geospatial raster I/O (for GeoTIFF export)
-- `xarray` - N-dimensional labeled arrays (for NetCDF export)
-- `netcdf4` - NetCDF file format support
-- `geopandas` - Geospatial data analysis
 
 ## Running the Scripts
 
@@ -206,10 +183,5 @@ time_interval = ('2023-07-01', '2023-07-31')
 
 - [Sentinel Hub Documentation](https://docs.sentinel-hub.com/)
 - [sentinelhub-py Documentation](https://sentinelhub-py.readthedocs.io/)
-- [Sentinel-2 User Guide](https://sentinel.esa.int/web/sentinel/user-guides/sentinel-2-msi)
-- [Sentinel-1 User Guide](https://sentinel.esa.int/web/sentinel/user-guides/sentinel-1-sar)
-- [ESA Copernicus Data Portal](https://scihub.copernicus.eu/)
+- [ESA Copernicus Data Portal](https://browser.dataspace.copernicus.eu/)
 
-## License
-
-These learning scripts are provided for educational purposes. Please respect the terms of service of Sentinel Hub and ESA Copernicus program when using satellite data.
