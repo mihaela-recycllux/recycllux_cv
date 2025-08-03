@@ -13,6 +13,7 @@ It shows how different satellites provide complementary information for various 
 Author: Varun Burde 
 email: varun@recycllux.com
 Date: 2025
+
 """
 
 import os

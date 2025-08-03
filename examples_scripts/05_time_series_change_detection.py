@@ -12,6 +12,7 @@ This script demonstrates how to perform temporal analysis using satellite data:
 Author: Varun Burde 
 email: varun@recycllux.com
 Date: 2025
+
 """
 
 import os

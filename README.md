@@ -184,4 +184,3 @@ time_interval = ('2023-07-01', '2023-07-31')
 - [Sentinel Hub Documentation](https://docs.sentinel-hub.com/)
 - [sentinelhub-py Documentation](https://sentinelhub-py.readthedocs.io/)
 - [ESA Copernicus Data Portal](https://browser.dataspace.copernicus.eu/)
-
