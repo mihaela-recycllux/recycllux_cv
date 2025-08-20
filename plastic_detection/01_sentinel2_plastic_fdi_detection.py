@@ -515,16 +515,30 @@ def visualize_results(rgb_image, fdi, detection_mask, water_mask, ndwi, bbox, ti
     ax1.set_ylabel('Latitude', fontsize=10)
     ax1.grid(True, alpha=0.3)
     
-    # 2. FDI values
+    # 2. FDI values (water areas only)
     ax2 = fig1.add_subplot(gs1[0, 1])
-    fdi_plot = ax2.imshow(fdi, cmap='RdBu_r', vmin=-0.05, vmax=0.05,
+    # Mask FDI to show only water areas
+    fdi_water_only = fdi.copy()
+    fdi_water_only[water_mask != 1] = np.nan  # Hide land areas
+    
+    fdi_plot = ax2.imshow(fdi_water_only, cmap='RdBu_r', vmin=-0.05, vmax=0.05,
                          extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax2.set_title(f'Floating Debris Index (FDI)\nRange: {np.nanmin(fdi):.4f} to {np.nanmax(fdi):.4f}', fontsize=11, pad=15)
+    
+    # Calculate statistics for water areas only
+    fdi_water_stats = fdi_water_only[~np.isnan(fdi_water_only)]
+    if len(fdi_water_stats) > 0:
+        fdi_min_water = np.min(fdi_water_stats)
+        fdi_max_water = np.max(fdi_water_stats)
+        title_stats = f"{fdi_min_water:.4f} to {fdi_max_water:.4f} (water only)"
+    else:
+        title_stats = "No water data available"
+    
+    ax2.set_title(f'Floating Debris Index (FDI)\nRange: {title_stats}', fontsize=11, pad=15)
     ax2.set_xlabel('Longitude', fontsize=10)
     ax2.set_ylabel('Latitude', fontsize=10)
     ax2.grid(True, alpha=0.3)
     cbar1 = plt.colorbar(fdi_plot, ax=ax2, shrink=0.8)
-    cbar1.set_label('FDI Value', fontsize=9)
+    cbar1.set_label('FDI Value (Water Only)', fontsize=9)
     
     # 3. Water mask (NDWI)
     ax3 = fig1.add_subplot(gs1[0, 2])
@@ -828,16 +842,21 @@ def main():
         # Setup credentials
         config = setup_credentials()
         
+        # CONFIGURATION - Consistent across all scripts
         # Define area of interest: Romanian coast of the Black Sea
         # Near the port of Constanța and Danube Delta - known shipping activity area
         # Coordinates: Longitude 28.5°E to 29.2°E, Latitude 44.0°N to 44.5°N
         bbox = BBox(bbox=[28.5, 44.0, 29.2, 44.5], crs=CRS.WGS84)
         
-        # Time range: Clear summer day
+        # Time range: Clear summer day (consistent across all scripts)
         time_interval = ('2024-07-10', '2024-07-20')
         
-        # Image resolution
+        # Image resolution (consistent across all scripts)
         image_size = (512, 512)
+        
+        # Detection parameters (consistent across all scripts)
+        fdi_threshold = 0.01  # Typical threshold for FDI plastic detection
+        ndwi_threshold = 0.0  # Water/land separation threshold
         
         print(f"\nArea of Interest: {bbox}")
         print(f"Time Interval: {time_interval}")
@@ -868,8 +887,7 @@ def main():
         print(f"\n{'='*50}")
         print("STEP 5: DETECTING PLASTIC IN WATER AREAS")
         print(f"{'='*50}")
-        threshold = 0.01  # Typical threshold for FDI plastic detection
-        detection_mask = create_plastic_detection_mask(fdi, water_mask, threshold)
+        detection_mask = create_plastic_detection_mask(fdi, water_mask, fdi_threshold)
         
         # Step 6: Calculate area statistics
         area_stats = calculate_plastic_area_statistics(detection_mask, water_mask, bbox)
@@ -881,7 +899,7 @@ def main():
         multi_res_data = download_multi_resolution_data(config, bbox, time_interval)
         
         # Step 7: Visualize results
-        visualize_results(rgb_image, fdi, detection_mask, water_mask, ndwi, bbox, time_interval, threshold, area_stats, multi_res_data)
+        visualize_results(rgb_image, fdi, detection_mask, water_mask, ndwi, bbox, time_interval, fdi_threshold, area_stats, multi_res_data)
         
         print("\n" + "=" * 60)
         print("ANALYSIS COMPLETED SUCCESSFULLY!")

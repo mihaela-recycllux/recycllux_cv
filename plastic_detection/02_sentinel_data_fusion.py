@@ -236,8 +236,38 @@ def download_sentinel1_sar_data(config, bbox, time_interval, size=(512, 512)):
     sar_data = request.get_data()[0]
     
     print(f"✓ Sentinel-1 SAR data downloaded: {sar_data.shape}")
-    print(f"  - VV polarization: min={sar_data[:,:,0].min():.4f}, max={sar_data[:,:,0].max():.4f}")
-    print(f"  - VH polarization: min={sar_data[:,:,1].min():.4f}, max={sar_data[:,:,1].max():.4f}")
+    
+    # Validate SAR data quality
+    vv_data = sar_data[:, :, 0]
+    vh_data = sar_data[:, :, 1]
+    
+    # Check for common SAR data issues
+    vv_valid = np.sum(vv_data > 1e-6)
+    vh_valid = np.sum(vh_data > 1e-6)
+    total_pixels = vv_data.size
+    
+    vv_coverage = (vv_valid / total_pixels) * 100
+    vh_coverage = (vh_valid / total_pixels) * 100
+    
+    print(f"  - VV polarization: min={np.nanmin(vv_data):.6f}, max={np.nanmax(vv_data):.6f}, coverage={vv_coverage:.1f}%")
+    print(f"  - VH polarization: min={np.nanmin(vh_data):.6f}, max={np.nanmax(vh_data):.6f}, coverage={vh_coverage:.1f}%")
+    
+    # Warning for poor data quality
+    if vv_coverage < 50 or vh_coverage < 50:
+        print(f"  ⚠️  WARNING: Low SAR data coverage detected!")
+        print(f"     This may be due to:")
+        print(f"     - No SAR acquisitions in the specified time period")
+        print(f"     - Different temporal sampling between SAR and optical data")
+        print(f"     - Processing issues in the SAR data")
+        print(f"     Consider extending the time interval or checking data availability")
+    
+    # Check for unusual patterns that might indicate artifacts
+    if np.all(vv_data == vv_data.flat[0]) or np.all(vh_data == vh_data.flat[0]):
+        print(f"  ⚠️  WARNING: Constant SAR values detected - possible data issue!")
+    
+    # Check for reasonable SAR value ranges (typical for Sentinel-1)
+    if np.nanmax(vv_data) > 10 or np.nanmax(vh_data) > 10:
+        print(f"  ⚠️  WARNING: Unusually high SAR values detected - possible calibration issue!")
     
     return sar_data
 
@@ -301,6 +331,15 @@ def calculate_derived_indices(fused_data):
     vv = fused_data[:, :, 5]      # VV polarization
     vh = fused_data[:, :, 6]      # VH polarization
     
+    # Debug: Print basic band statistics
+    print(f"  Input data statistics:")
+    band_names = ['Blue', 'Green', 'Red', 'NIR', 'SWIR', 'VV', 'VH']
+    for i, name in enumerate(band_names):
+        data = fused_data[:, :, i]
+        valid_data = data[data > 0] if name in ['VV', 'VH'] else data[~np.isnan(data)]
+        if len(valid_data) > 0:
+            print(f"    {name}: mean={np.mean(valid_data):.4f}, std={np.std(valid_data):.4f}, range=[{np.min(valid_data):.4f}, {np.max(valid_data):.4f}]")
+    
     indices = {}
     
     # Optical indices
@@ -322,22 +361,57 @@ def calculate_derived_indices(fused_data):
     
     # SAR indices
     with np.errstate(divide='ignore', invalid='ignore'):
-        # Cross-polarization ratio
-        indices['vh_vv_ratio'] = vh / (vv + 1e-10)
+        # Cross-polarization ratio - handle invalid values properly
+        indices['vh_vv_ratio'] = np.where((vv > 1e-6) & (vh > 1e-6), vh / vv, np.nan)
         
-        # SAR roughness proxy
-        indices['sar_intensity'] = np.sqrt(vv**2 + vh**2)
+        # SAR roughness proxy - only calculate for valid values
+        indices['sar_intensity'] = np.where((vv > 1e-6) & (vh > 1e-6), np.sqrt(vv**2 + vh**2), np.nan)
         
-        # Depolarization ratio
-        indices['depol_ratio'] = vh / (vv + vh + 1e-10)
+        # Depolarization ratio - handle invalid values
+        indices['depol_ratio'] = np.where((vv > 1e-6) & (vh > 1e-6), vh / (vv + vh), np.nan)
     
     # Multi-sensor indices (combining optical and SAR)
     with np.errstate(divide='ignore', invalid='ignore'):
-        # Optical-SAR composite for plastic detection
-        indices['optical_sar_composite'] = indices['fdi'] * np.log10(vv + 1e-10)
+        # Optical-SAR composite for plastic detection - handle invalid values
+        indices['optical_sar_composite'] = np.where(vv > 1e-6, 
+                                                   indices['fdi'] * np.log10(vv), 
+                                                   np.nan)
         
-        # Enhanced plastic index using both sensors
-        indices['enhanced_plastic'] = (indices['fdi'] + 0.1) * (1 - indices['vh_vv_ratio'])
+        # Enhanced plastic index using both sensors (FIXED FORMULA)
+        # Plastic detection based on:
+        # 1. Positive FDI (floating objects reflect more red than NIR)
+        # 2. Low depolarization (smooth plastic surfaces)
+        # 3. Moderate backscatter intensity
+        
+        # Clip VH/VV ratio to reasonable range (0-2) to avoid extreme values
+        vh_vv_clipped = np.clip(indices['vh_vv_ratio'], 0, 2)
+        
+        # Surface smoothness indicator (higher for smoother surfaces like plastic)
+        smoothness = np.where(~np.isnan(vh_vv_clipped), 
+                             1 / (1 + vh_vv_clipped),  # Decreases with increasing vh/vv ratio
+                             0)
+        
+        # Combine positive FDI with surface smoothness
+        # Scale FDI to positive range [0, 1] for combination
+        fdi_scaled = np.clip((indices['fdi'] + 0.1) / 0.2, 0, 1)  # Shift and scale FDI
+        
+        indices['enhanced_plastic'] = fdi_scaled * smoothness
+        
+        # Debug the enhanced plastic calculation
+        print(f"  Enhanced plastic debug:")
+        vh_vv_valid = vh_vv_clipped[~np.isnan(vh_vv_clipped)]
+        smoothness_valid = smoothness[~np.isnan(smoothness)]
+        fdi_scaled_valid = fdi_scaled[~np.isnan(fdi_scaled)]
+        enhanced_valid = indices['enhanced_plastic'][~np.isnan(indices['enhanced_plastic'])]
+        
+        if len(vh_vv_valid) > 0:
+            print(f"    VH/VV ratio (clipped): mean={np.mean(vh_vv_valid):.4f}, range=[{np.min(vh_vv_valid):.4f}, {np.max(vh_vv_valid):.4f}]")
+        if len(smoothness_valid) > 0:
+            print(f"    Smoothness factor: mean={np.mean(smoothness_valid):.4f}, range=[{np.min(smoothness_valid):.4f}, {np.max(smoothness_valid):.4f}]")
+        if len(fdi_scaled_valid) > 0:
+            print(f"    FDI scaled: mean={np.mean(fdi_scaled_valid):.4f}, range=[{np.min(fdi_scaled_valid):.4f}, {np.max(fdi_scaled_valid):.4f}]")
+        if len(enhanced_valid) > 0:
+            print(f"    Enhanced plastic final: mean={np.mean(enhanced_valid):.4f}, range=[{np.min(enhanced_valid):.4f}, {np.max(enhanced_valid):.4f}]")
     
     print(f"✓ Calculated {len(indices)} derived indices")
     for name, data in indices.items():
@@ -470,14 +544,14 @@ def calculate_plastic_area_statistics(detection_mask, water_mask, bbox):
     print(f"✓ Area statistics: {detected_area_m2:.0f} m² detected ({plastic_percentage:.3f}% of water)")
     return statistics
 
-def create_enhanced_plastic_detection(indices, water_mask, threshold=0.05):
+def create_enhanced_plastic_detection(indices, water_mask, threshold=0.01):
     """
     Create enhanced plastic detection using multiple indices (water areas only)
     
     Args:
         indices: Dictionary of calculated indices
         water_mask: Water mask (1=water, 0=land)
-        threshold: Enhanced plastic index threshold
+        threshold: Enhanced plastic index threshold (lowered to 0.01)
         
     Returns:
         numpy.ndarray: Detection mask (1=plastic, 0=water, NaN=land/invalid)
@@ -485,6 +559,32 @@ def create_enhanced_plastic_detection(indices, water_mask, threshold=0.05):
     print(f"Creating water-only enhanced plastic detection (threshold: {threshold})...")
     
     enhanced_plastic = indices['enhanced_plastic']
+    
+    # Calculate adaptive threshold based on water area statistics
+    water_areas = (water_mask == 1) & (~np.isnan(enhanced_plastic))
+    water_enhanced_values = enhanced_plastic[water_areas]
+    if len(water_enhanced_values) > 0:
+        print(f"  Enhanced plastic in water areas ({len(water_enhanced_values)} pixels):")
+        print(f"    Range: {np.min(water_enhanced_values):.4f} to {np.max(water_enhanced_values):.4f}")
+        print(f"    Mean: {np.mean(water_enhanced_values):.4f}, Std: {np.std(water_enhanced_values):.4f}")
+        print(f"    Percentiles: 50th={np.percentile(water_enhanced_values, 50):.4f}, 90th={np.percentile(water_enhanced_values, 90):.4f}")
+        print(f"    Percentiles: 95th={np.percentile(water_enhanced_values, 95):.4f}, 99th={np.percentile(water_enhanced_values, 99):.4f}")
+        
+        # Count pixels above different thresholds
+        print(f"    Pixels above thresholds:")
+        for thresh in [0.0001, 0.001, 0.01, 0.05, 0.1]:
+            count = np.sum(water_enhanced_values > thresh)
+            pct = (count / len(water_enhanced_values)) * 100
+            print(f"      > {thresh}: {count} pixels ({pct:.2f}%)")
+        
+        # Use adaptive threshold: use 95th percentile but with minimum threshold
+        adaptive_threshold = max(np.percentile(water_enhanced_values, 95), 0.001)
+        if adaptive_threshold != threshold:
+            print(f"  Using adaptive threshold: {adaptive_threshold:.4f} (95th percentile, min 0.001)")
+        else:
+            print(f"  Using fixed threshold: {threshold:.4f}")
+        threshold = adaptive_threshold
+    
     detection_mask = np.zeros_like(enhanced_plastic)
     
     # Apply threshold only to water areas
@@ -557,49 +657,153 @@ def visualize_fusion_results(optical_data, sar_data, fused_data, indices, bbox, 
     
     # 3. VV polarization (SAR)
     ax3 = fig1.add_subplot(gs1[0, 2])
-    vv_db = 10 * np.log10(np.maximum(sar_data[:, :, 0], 1e-10))
-    vv_plot = ax3.imshow(vv_db, cmap='gray', vmin=-25, vmax=0,
-                        extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax3.set_title('Sentinel-1 VV\n(dB)', fontsize=11, pad=15)
+    # Check for valid SAR data before processing
+    vv_data = sar_data[:, :, 0]
+    if np.all(vv_data <= 0) or np.all(np.isnan(vv_data)):
+        # No valid SAR data - show warning
+        ax3.text(0.5, 0.5, 'No Valid\nSAR VV Data\nAvailable', 
+                ha='center', va='center', transform=ax3.transAxes, 
+                fontsize=12, bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.8))
+        ax3.set_title('Sentinel-1 VV\n(No Data)', fontsize=11, pad=15)
+    else:
+        # Filter out invalid values and convert to dB with robust outlier removal
+        vv_valid = np.where(vv_data > 1e-10, vv_data, np.nan)
+        
+        # Remove extreme outliers using IQR method
+        vv_clean = vv_valid[~np.isnan(vv_valid)]
+        if len(vv_clean) > 0:
+            q25, q75 = np.percentile(vv_clean, [25, 75])
+            iqr = q75 - q25
+            lower_bound = max(q25 - 1.5 * iqr, 1e-6)  # Don't go below reasonable SAR minimum
+            upper_bound = min(q75 + 1.5 * iqr, 1.0)   # Don't go above reasonable SAR maximum
+            vv_clipped = np.where((vv_valid >= lower_bound) & (vv_valid <= upper_bound), vv_valid, np.nan)
+        else:
+            vv_clipped = vv_valid
+        
+        # Convert to dB
+        vv_db = 10 * np.log10(vv_clipped)
+        
+        # Debug: Print SAR statistics
+        vv_stats = vv_db[~np.isnan(vv_db)]
+        if len(vv_stats) > 0:
+            print(f"VV dB range: {np.min(vv_stats):.1f} to {np.max(vv_stats):.1f} dB")
+            print(f"VV dB mean: {np.mean(vv_stats):.1f} dB, std: {np.std(vv_stats):.1f} dB")
+        
+        # Use data-driven dB range for better visualization
+        vv_stats = vv_db[~np.isnan(vv_db)]
+        if len(vv_stats) > 0:
+            vmin_vv = np.percentile(vv_stats, 2)   # 2nd percentile for better contrast
+            vmax_vv = np.percentile(vv_stats, 98)  # 98th percentile for better contrast
+            # Ensure reasonable bounds
+            vmin_vv = max(vmin_vv, -60)  # Don't go below -60 dB
+            vmax_vv = min(vmax_vv, -5)   # Don't go above -5 dB
+        else:
+            vmin_vv, vmax_vv = -30, -10
+        vv_plot = ax3.imshow(vv_db, cmap='viridis', vmin=vmin_vv, vmax=vmax_vv,
+                            extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+        ax3.set_title(f'Sentinel-1 VV\n(dB: {vmin_vv:.1f} to {vmax_vv:.1f})', fontsize=11, pad=15)
+        cbar2 = plt.colorbar(vv_plot, ax=ax3, shrink=0.8)
+        cbar2.set_label('VV (dB)', fontsize=9)
     ax3.set_xlabel('Longitude', fontsize=10)
     ax3.set_ylabel('Latitude', fontsize=10)
     ax3.grid(True, alpha=0.3)
-    cbar2 = plt.colorbar(vv_plot, ax=ax3, shrink=0.8)
-    cbar2.set_label('VV (dB)', fontsize=9)
     
     # 4. VH polarization (SAR)
     ax4 = fig1.add_subplot(gs1[0, 3])
-    vh_db = 10 * np.log10(np.maximum(sar_data[:, :, 1], 1e-10))
-    vh_plot = ax4.imshow(vh_db, cmap='gray', vmin=-30, vmax=-5,
-                        extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax4.set_title('Sentinel-1 VH\n(dB)', fontsize=11, pad=15)
+    # Check for valid SAR data before processing
+    vh_data = sar_data[:, :, 1]
+    if np.all(vh_data <= 0) or np.all(np.isnan(vh_data)):
+        # No valid SAR data - show warning
+        ax4.text(0.5, 0.5, 'No Valid\nSAR VH Data\nAvailable', 
+                ha='center', va='center', transform=ax4.transAxes, 
+                fontsize=12, bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.8))
+        ax4.set_title('Sentinel-1 VH\n(No Data)', fontsize=11, pad=15)
+    else:
+        # Filter out invalid values and convert to dB with robust outlier removal
+        vh_valid = np.where(vh_data > 1e-10, vh_data, np.nan)
+        
+        # Remove extreme outliers using IQR method
+        vh_clean = vh_valid[~np.isnan(vh_valid)]
+        if len(vh_clean) > 0:
+            q25, q75 = np.percentile(vh_clean, [25, 75])
+            iqr = q75 - q25
+            lower_bound = max(q25 - 1.5 * iqr, 1e-6)  # Don't go below reasonable SAR minimum
+            upper_bound = min(q75 + 1.5 * iqr, 1.0)   # Don't go above reasonable SAR maximum
+            vh_clipped = np.where((vh_valid >= lower_bound) & (vh_valid <= upper_bound), vh_valid, np.nan)
+        else:
+            vh_clipped = vh_valid
+        
+        # Convert to dB
+        vh_db = 10 * np.log10(vh_clipped)
+        
+        # Debug: Print SAR statistics
+        vh_stats = vh_db[~np.isnan(vh_db)]
+        if len(vh_stats) > 0:
+            print(f"VH dB range: {np.min(vh_stats):.1f} to {np.max(vh_stats):.1f} dB")
+            print(f"VH dB mean: {np.mean(vh_stats):.1f} dB, std: {np.std(vh_stats):.1f} dB")
+        
+        # Use data-driven dB range for better visualization (VH typically lower than VV)
+        vh_stats = vh_db[~np.isnan(vh_db)]
+        if len(vh_stats) > 0:
+            vmin_vh = np.percentile(vh_stats, 2)   # 2nd percentile for better contrast
+            vmax_vh = np.percentile(vh_stats, 98)  # 98th percentile for better contrast
+            # Ensure reasonable bounds
+            vmin_vh = max(vmin_vh, -65)  # Don't go below -65 dB
+            vmax_vh = min(vmax_vh, -10)  # Don't go above -10 dB
+        else:
+            vmin_vh, vmax_vh = -35, -15
+        vh_plot = ax4.imshow(vh_db, cmap='plasma', vmin=vmin_vh, vmax=vmax_vh,
+                            extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+        ax4.set_title(f'Sentinel-1 VH\n(dB: {vmin_vh:.1f} to {vmax_vh:.1f})', fontsize=11, pad=15)
+        cbar3 = plt.colorbar(vh_plot, ax=ax4, shrink=0.8)
+        cbar3.set_label('VH (dB)', fontsize=9)
     ax4.set_xlabel('Longitude', fontsize=10)
     ax4.set_ylabel('Latitude', fontsize=10)
     ax4.grid(True, alpha=0.3)
-    cbar3 = plt.colorbar(vh_plot, ax=ax4, shrink=0.8)
-    cbar3.set_label('VH (dB)', fontsize=9)
     
-    # 5. FDI (Floating Debris Index)
+    # 5. FDI (Floating Debris Index) - water areas only
     ax5 = fig1.add_subplot(gs1[1, 0])
-    fdi_plot = ax5.imshow(indices['fdi'], cmap='RdBu_r', vmin=-0.05, vmax=0.05,
+    # Mask FDI to show only water areas
+    fdi_water_only = indices['fdi'].copy()
+    fdi_water_only[water_mask != 1] = np.nan  # Hide land areas
+    
+    fdi_plot = ax5.imshow(fdi_water_only, cmap='RdBu_r', vmin=-0.05, vmax=0.05,
                          extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax5.set_title('FDI\n(Floating Debris Index)', fontsize=11, pad=15)
+    ax5.set_title('FDI (Water Areas Only)\n(Floating Debris Index)', fontsize=11, pad=15)
     ax5.set_xlabel('Longitude', fontsize=10)
     ax5.set_ylabel('Latitude', fontsize=10)
     ax5.grid(True, alpha=0.3)
     cbar4 = plt.colorbar(fdi_plot, ax=ax5, shrink=0.8)
-    cbar4.set_label('FDI Value', fontsize=9)
+    cbar4.set_label('FDI Value (Water Only)', fontsize=9)
     
     # 6. VH/VV Ratio
     ax6 = fig1.add_subplot(gs1[1, 1])
-    ratio_plot = ax6.imshow(indices['vh_vv_ratio'], cmap='viridis', vmin=0, vmax=1,
-                           extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax6.set_title('VH/VV Ratio\n(Cross-pol)', fontsize=11, pad=15)
+    # Check for valid ratio calculation
+    vv_data = sar_data[:, :, 0]
+    vh_data = sar_data[:, :, 1]
+    if np.all(vv_data <= 0) or np.all(vh_data <= 0) or np.all(np.isnan(indices['vh_vv_ratio'])):
+        # No valid SAR data for ratio calculation
+        ax6.text(0.5, 0.5, 'No Valid\nSAR Data\nfor Ratio', 
+                ha='center', va='center', transform=ax6.transAxes, 
+                fontsize=12, bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.8))
+        ax6.set_title('VH/VV Ratio\n(No Data)', fontsize=11, pad=15)
+    else:
+        # Use adaptive scaling for ratio
+        ratio_valid = indices['vh_vv_ratio'][~np.isnan(indices['vh_vv_ratio'])]
+        if len(ratio_valid) > 0:
+            vmin_ratio = np.percentile(ratio_valid, 1)
+            vmax_ratio = np.percentile(ratio_valid, 99)
+        else:
+            vmin_ratio, vmax_ratio = 0, 1
+        ratio_plot = ax6.imshow(indices['vh_vv_ratio'], cmap='viridis', 
+                               vmin=vmin_ratio, vmax=vmax_ratio,
+                               extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+        ax6.set_title(f'VH/VV Ratio\n({vmin_ratio:.2f} to {vmax_ratio:.2f})', fontsize=11, pad=15)
+        cbar5 = plt.colorbar(ratio_plot, ax=ax6, shrink=0.8)
+        cbar5.set_label('Ratio', fontsize=9)
     ax6.set_xlabel('Longitude', fontsize=10)
     ax6.set_ylabel('Latitude', fontsize=10)
     ax6.grid(True, alpha=0.3)
-    cbar5 = plt.colorbar(ratio_plot, ax=ax6, shrink=0.8)
-    cbar5.set_label('Ratio', fontsize=9)
     
     # 7. Enhanced Plastic Index
     ax7 = fig1.add_subplot(gs1[1, 2])
@@ -614,7 +818,15 @@ def visualize_fusion_results(optical_data, sar_data, fused_data, indices, bbox, 
     
     # 8. SAR Intensity
     ax8 = fig1.add_subplot(gs1[1, 3])
-    intensity_plot = ax8.imshow(indices['sar_intensity'], cmap='plasma',
+    # Scale SAR intensity for better visualization
+    sar_valid = indices['sar_intensity'][~np.isnan(indices['sar_intensity'])]
+    if len(sar_valid) > 0:
+        vmin_sar = np.percentile(sar_valid, 2)
+        vmax_sar = np.percentile(sar_valid, 98)
+    else:
+        vmin_sar, vmax_sar = 0, 1
+    intensity_plot = ax8.imshow(indices['sar_intensity'], cmap='plasma', 
+                               vmin=vmin_sar, vmax=vmax_sar,
                                extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
     ax8.set_title('SAR Intensity\n(√(VV² + VH²))', fontsize=11, pad=15)
     ax8.set_xlabel('Longitude', fontsize=10)
@@ -791,18 +1003,21 @@ Applications:
         cbar_enh = plt.colorbar(enhanced_plot, ax=ax_mask3, shrink=0.8)
         cbar_enh.set_label('Enhanced Plastic', fontsize=9)
         
-        # Index comparison histograms
-        ax_hist1 = fig2.add_subplot(gs2[1, 0])
-        valid_fdi = indices['fdi'][~np.isnan(indices['fdi'])]
-        valid_enhanced = indices['enhanced_plastic'][~np.isnan(indices['enhanced_plastic'])]
+        # Water mask visualization
+        ax_water = fig2.add_subplot(gs2[1, 0])
+        colors_water = ['brown', 'blue']
+        cmap_water = ListedColormap(colors_water)
+        water_plot = ax_water.imshow(water_mask, cmap=cmap_water, vmin=0, vmax=1,
+                                    extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+        ax_water.set_title('Water Mask (NDWI-based)\nBrown=Land, Blue=Water', fontsize=11, pad=15)
+        ax_water.set_xlabel('Longitude', fontsize=10)
+        ax_water.set_ylabel('Latitude', fontsize=10)
+        ax_water.grid(True, alpha=0.3)
         
-        ax_hist1.hist(valid_fdi, bins=30, alpha=0.7, label='FDI', color='skyblue', density=True)
-        ax_hist1.hist(valid_enhanced * 10, bins=30, alpha=0.7, label='Enhanced×10', color='orange', density=True)
-        ax_hist1.set_xlabel('Index Value', fontsize=10)
-        ax_hist1.set_ylabel('Density', fontsize=10)
-        ax_hist1.set_title('Index Distributions', fontsize=11, pad=15)
-        ax_hist1.legend(fontsize=9)
-        ax_hist1.grid(True, alpha=0.3)
+        # Add legend for water mask  
+        land_patch = mpatches.Patch(color='brown', label='Land')
+        water_patch_mask = mpatches.Patch(color='blue', label='Water')
+        ax_water.legend(handles=[land_patch, water_patch_mask], loc='upper right', fontsize=10)
         
         # SAR vs Optical scatter plot
         ax_scatter = fig2.add_subplot(gs2[1, 1])
@@ -1041,16 +1256,21 @@ def main():
         # Setup credentials
         config = setup_credentials()
         
+        # CONFIGURATION - Consistent across all scripts
         # Define area of interest: Romanian coast of the Black Sea
         # Near the port of Constanța and Danube Delta - known shipping activity area
         # Coordinates: Longitude 28.5°E to 29.2°E, Latitude 44.0°N to 44.5°N
         bbox = BBox(bbox=[28.5, 44.0, 29.2, 44.5], crs=CRS.WGS84)
         
-        # Time range: Summer period with good data availability
+        # Time range: Summer period with good data availability (consistent across all scripts)
         time_interval = ('2024-07-10', '2024-07-20')
         
-        # Image resolution
+        # Image resolution (consistent across all scripts)
         image_size = (512, 512)
+        
+        # Detection parameters (consistent across all scripts)
+        enhanced_plastic_threshold = 0.0001  # Much more sensitive threshold based on water area statistics
+        ndwi_threshold = -0.05  # Slightly more inclusive water detection
         
         print(f"Configuration:")
         print(f"  Area of Interest: {bbox}")
@@ -1099,7 +1319,7 @@ def main():
         print(f"\n{'='*50}")
         print("STEP 4.5: CREATING WATER-ONLY PLASTIC DETECTION")
         print(f"{'='*50}")
-        detection_mask = create_enhanced_plastic_detection(indices, water_mask, threshold=0.05)
+        detection_mask = create_enhanced_plastic_detection(indices, water_mask, enhanced_plastic_threshold)
         area_stats = calculate_plastic_area_statistics(detection_mask, water_mask, bbox)
         
         # Step 5: Create ML-ready dataset
