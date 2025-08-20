@@ -1078,128 +1078,6 @@ Detection Method:
         plt.savefig(enhanced_filename, dpi=300, bbox_inches='tight')
         print(f"✓ Enhanced detection visualization saved as: {enhanced_filename}")
         plt.show()
-    
-    # Create workflow diagram
-    print("Creating workflow diagram...")
-    
-    fig3 = plt.figure(figsize=(18, 12))
-    gs3 = fig3.add_gridspec(2, 2, hspace=0.3, wspace=0.2)
-    
-    # Main workflow text
-    ax_workflow = fig3.add_subplot(gs3[0, :])
-    ax_workflow.axis('off')
-    
-    workflow_text = """DATA FUSION WORKFLOW
-
-1. SENTINEL-2 DOWNLOAD          2. SENTINEL-1 DOWNLOAD          3. SPATIAL ALIGNMENT
-   ├─ Blue (B02)                   ├─ VV polarization              ├─ Same bbox & resolution
-   ├─ Green (B03)                  └─ VH polarization              └─ Co-registration
-   ├─ Red (B04)                    
-   ├─ NIR (B08)                    
-   └─ SWIR (B11)                   
-
-4. WATER MASKING                 5. FEATURE ENGINEERING          6. ML-READY DATASET
-   ├─ NDWI calculation             ├─ Spectral indices              ├─ 15 features per pixel
-   ├─ Water/Land separation        │  └─ NDVI, FDI, NDWI            ├─ Water areas only
-   └─ Apply to all processing      ├─ SAR indices                   └─ Standardized format
-                                   │  └─ Ratios, intensity          
-                                   └─ Multi-sensor combinations     
-
-7. PLASTIC DETECTION            8. VALIDATION & OUTPUT           9. APPLICATIONS
-   ├─ Enhanced plastic index       ├─ Area statistics               ├─ Machine learning
-   ├─ Threshold-based detection    ├─ Quality metrics               ├─ Time series analysis
-   └─ Confidence assessment        └─ Visualization                 └─ Operational monitoring"""
-    
-    ax_workflow.text(0.05, 0.95, workflow_text, transform=ax_workflow.transAxes, fontsize=10,
-                    verticalalignment='top', fontfamily='monospace',
-                    bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8, pad=0.5))
-    
-    # Visual flowchart
-    ax_flow = fig3.add_subplot(gs3[1, 0])
-    ax_flow.axis('off')
-    
-    # Create a simple flowchart using matplotlib
-    import matplotlib.patches as mpatches
-    from matplotlib.patches import FancyBboxPatch, ConnectionPatch
-    
-    # Define boxes
-    boxes = [
-        {'xy': (0.1, 0.8), 'text': 'Sentinel-2\nOptical', 'color': 'lightgreen'},
-        {'xy': (0.5, 0.8), 'text': 'Sentinel-1\nSAR', 'color': 'lightcoral'},
-        {'xy': (0.3, 0.6), 'text': 'Co-registration\n& Alignment', 'color': 'lightyellow'},
-        {'xy': (0.3, 0.4), 'text': 'Water Masking\nNDWI > 0', 'color': 'lightcyan'},
-        {'xy': (0.3, 0.2), 'text': 'Enhanced\nPlastic Index', 'color': 'lightpink'},
-        {'xy': (0.3, 0.05), 'text': 'Plastic\nDetection', 'color': 'orange'}
-    ]
-    
-    # Draw boxes
-    for box in boxes:
-        fancy_box = FancyBboxPatch((box['xy'][0]-0.08, box['xy'][1]-0.05), 0.16, 0.1,
-                                  boxstyle="round,pad=0.01", 
-                                  facecolor=box['color'], edgecolor='black', linewidth=1)
-        ax_flow.add_patch(fancy_box)
-        ax_flow.text(box['xy'][0], box['xy'][1], box['text'], ha='center', va='center', 
-                    fontsize=9, fontweight='bold')
-    
-    # Draw arrows
-    arrows = [
-        ((0.1, 0.75), (0.25, 0.65)),   # Sentinel-2 to alignment
-        ((0.5, 0.75), (0.35, 0.65)),   # Sentinel-1 to alignment
-        ((0.3, 0.55), (0.3, 0.45)),    # Alignment to water mask
-        ((0.3, 0.35), (0.3, 0.25)),    # Water mask to index
-        ((0.3, 0.15), (0.3, 0.1))      # Index to detection
-    ]
-    
-    for start, end in arrows:
-        arrow = mpatches.FancyArrowPatch(start, end, 
-                                       arrowstyle='->', mutation_scale=15,
-                                       color='darkblue', linewidth=2)
-        ax_flow.add_patch(arrow)
-    
-    ax_flow.set_xlim(0, 0.6)
-    ax_flow.set_ylim(0, 0.9)
-    ax_flow.set_title('Processing Flow', fontsize=12, fontweight='bold', pad=20)
-    
-    # Advantages and benefits
-    ax_benefits = fig3.add_subplot(gs3[1, 1])
-    ax_benefits.axis('off')
-    
-    benefits_text = """FUSION ADVANTAGES:
-
-• SAR works in all weather conditions
-  (clouds, rain, darkness)
-  
-• Optical provides spectral information 
-  for material classification
-  
-• Combined data improves detection 
-  accuracy and reduces false positives
-  
-• SAR backscatter helps distinguish 
-  plastic from organic materials
-  
-• Water masking eliminates 
-  land-based false positives
-  
-• Multi-sensor approach increases 
-  reliability and confidence
-  
-• Temporal consistency through 
-  different weather conditions"""
-    
-    ax_benefits.text(0.05, 0.95, benefits_text, transform=ax_benefits.transAxes, fontsize=10,
-                    verticalalignment='top', fontfamily='sans-serif',
-                    bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8, pad=0.5))
-    
-    plt.suptitle('Multi-Sensor Data Fusion Workflow\nSentinel-1 SAR + Sentinel-2 Optical', 
-                 fontsize=16, y=0.96)
-    
-    # Save workflow diagram
-    workflow_filename = os.path.join(data_dir, f"fusion_workflow_{time_interval[0]}_{time_interval[1]}.png")
-    plt.savefig(workflow_filename, dpi=300, bbox_inches='tight')
-    print(f"✓ Workflow diagram saved as: {workflow_filename}")
-    plt.show()
-    plt.show()
 
 def save_ml_dataset(ml_dataset, feature_names, time_interval):
     """
@@ -1262,20 +1140,28 @@ def main():
         # Coordinates: Longitude 28.5°E to 29.2°E, Latitude 44.0°N to 44.5°N
         bbox = BBox(bbox=[28.5, 44.0, 29.2, 44.5], crs=CRS.WGS84)
         
-        # Time range: Summer period with good data availability (consistent across all scripts)
-        time_interval = ('2024-07-10', '2024-07-20')
+        # Time range: Extended summer period for better data availability (consistent across all scripts)
+        time_interval = ('2025-07-01', '2025-07-31')
         
-        # Image resolution (consistent across all scripts)
-        image_size = (512, 512)
+        # Image resolution - optimized for native satellite resolution
+        # Sentinel-2: 10m native for RGB/NIR, Sentinel-1: resampled to 10m
+        # For 0.7°x0.5° bbox (~77km x 55km), at 10m resolution = ~7700x5500 pixels  
+        # Using 768x512 for computational efficiency while respecting 10m grid
+        image_size = (768, 512)  # Optimized for 10m native resolution
         
         # Detection parameters (consistent across all scripts)
-        enhanced_plastic_threshold = 0.0001  # Much more sensitive threshold based on water area statistics
-        ndwi_threshold = -0.05  # Slightly more inclusive water detection
+        # Detection parameters (standardized across all scripts)
+        enhanced_plastic_threshold = 0.001  # Adaptive threshold using 95th percentile
+        ndwi_threshold = -0.05              # More inclusive water detection
+        
+        # Resolution settings - use 10m which is native for both sensors
+        target_resolution = 10  # meters - native for Sentinel-2 RGB/NIR and processed Sentinel-1
         
         print(f"Configuration:")
         print(f"  Area of Interest: {bbox}")
         print(f"  Time Interval: {time_interval}")
-        print(f"  Image Size: {image_size}")
+        print(f"  Image Size: {image_size} (optimized for {target_resolution}m native resolution)")
+        print(f"  Target Resolution: {target_resolution}m (native for both Sentinel-1 & Sentinel-2)")
         print(f"  Data will be saved to: plastic_detection/data")
         
         # Step 1: Download Sentinel-2 optical data

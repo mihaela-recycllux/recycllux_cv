@@ -1614,19 +1614,28 @@ def main():
         # Near the port of Constanța and Danube Delta - major shipping and river confluence area
         # Coordinates: Longitude 28.5°E to 29.2°E, Latitude 44.0°N to 44.5°N
         bbox = BBox(bbox=[28.5, 44.0, 29.2, 44.5], crs=CRS.WGS84)
-        time_interval = ('2024-07-10', '2024-07-20')
-        image_size = (512, 512)
+        time_interval = ('2025-07-01', '2025-07-31')
+        # Image resolution - optimized for native satellite resolution
+        # Sentinel-2: 10m native for RGB/NIR, Sentinel-1: resampled to 10m
+        # For 0.7°x0.5° bbox (~77km x 55km), at 10m resolution = ~7700x5500 pixels
+        # Using 768x512 for computational efficiency while respecting 10m grid  
+        image_size = (768, 512)  # Optimized for 10m native resolution
         
         # Detection parameters (consistent across all scripts)
-        fdi_threshold = 0.002  # Adaptive threshold based on debugging (99th percentile ≈ 0.0014)
-        enhanced_plastic_threshold = 0.01  # Enhanced plastic index threshold
-        ndwi_threshold = 0.0  # Water/land separation threshold
+        # Detection parameters (standardized across all scripts)
+        fdi_threshold = 0.002               # Adaptive threshold based on water area statistics
+        enhanced_plastic_threshold = 0.001  # Enhanced plastic index threshold
+        ndwi_threshold = -0.05              # More inclusive water detection
         anomaly_contamination = 0.01  # Expected contamination rate for anomaly detection (1%)
+        
+        # Resolution settings - use 10m which is native for both sensors
+        target_resolution = 10  # meters - native for Sentinel-2 RGB/NIR and processed Sentinel-1
         
         print(f"Configuration:")
         print(f"  Area: {bbox}")
         print(f"  Time: {time_interval}")
-        print(f"  Size: {image_size}")
+        print(f"  Size: {image_size} (optimized for {target_resolution}m native resolution)")
+        print(f"  Target Resolution: {target_resolution}m (native for both Sentinel-1 & Sentinel-2)")
         print(f"  Data will be saved to: plastic_detection/data")
         
         # Step 1: Download data

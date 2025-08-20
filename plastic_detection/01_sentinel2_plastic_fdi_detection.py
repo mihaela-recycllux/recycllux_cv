@@ -236,11 +236,28 @@ def create_plastic_detection_mask(fdi, water_mask, threshold=0.01):
     """
     print(f"Creating water-only detection mask with FDI threshold: {threshold}")
     
+    # Debug: Check FDI values in water areas for adaptive threshold
+    water_areas = (water_mask == 1) & (~np.isnan(fdi))
+    water_fdi_values = fdi[water_areas]
+    if len(water_fdi_values) > 0:
+        print(f"  FDI statistics in water areas ({len(water_fdi_values)} pixels):")
+        print(f"    Range: {np.min(water_fdi_values):.4f} to {np.max(water_fdi_values):.4f}")
+        print(f"    Mean: {np.mean(water_fdi_values):.4f}, Std: {np.std(water_fdi_values):.4f}")
+        print(f"    95th percentile: {np.percentile(water_fdi_values, 95):.4f}")
+        print(f"    99th percentile: {np.percentile(water_fdi_values, 99):.4f}")
+        
+        # Use adaptive threshold: 95th percentile but not less than 0.001
+        adaptive_threshold = max(np.percentile(water_fdi_values, 95), 0.001)
+        if adaptive_threshold != threshold:
+            print(f"  Using adaptive FDI threshold: {adaptive_threshold:.4f} (95th percentile, min 0.001)")
+            threshold = adaptive_threshold
+        else:
+            print(f"  Using fixed FDI threshold: {threshold:.4f}")
+    
     # Create binary mask, but only apply to water areas
     detection_mask = np.zeros_like(fdi)
     
     # Apply FDI threshold only where we have water
-    water_areas = (water_mask == 1) & (~np.isnan(fdi))
     detection_mask[water_areas & (fdi > threshold)] = 1
     
     # Set land areas and invalid pixels to NaN
@@ -848,19 +865,26 @@ def main():
         # Coordinates: Longitude 28.5°E to 29.2°E, Latitude 44.0°N to 44.5°N
         bbox = BBox(bbox=[28.5, 44.0, 29.2, 44.5], crs=CRS.WGS84)
         
-        # Time range: Clear summer day (consistent across all scripts)
-        time_interval = ('2024-07-10', '2024-07-20')
+        # Time range: Extended summer period for better data availability (consistent across all scripts)
+        time_interval = ('2025-07-01', '2025-07-31')
         
-        # Image resolution (consistent across all scripts)
-        image_size = (512, 512)
+        # Image resolution - optimized for native satellite resolution
+        # Sentinel-2: 10m native for RGB/NIR bands - use dimensions that respect this
+        # For 0.7°x0.5° bbox (~77km x 55km), at 10m resolution = ~7700x5500 pixels
+        # Using 768x512 for computational efficiency while respecting 10m grid
+        image_size = (768, 512)  # Optimized for 10m native resolution
         
-        # Detection parameters (consistent across all scripts)
-        fdi_threshold = 0.01  # Typical threshold for FDI plastic detection
-        ndwi_threshold = 0.0  # Water/land separation threshold
+        # Detection parameters (standardized across all scripts)
+        ndwi_threshold = -0.05  # More inclusive water detection
+        fdi_threshold = 0.002   # Adaptive threshold based on water area statistics
+        
+        # Resolution settings - use 10m which is native for Sentinel-2 RGB/NIR bands
+        target_resolution = 10  # meters - native resolution for main Sentinel-2 bands
         
         print(f"\nArea of Interest: {bbox}")
         print(f"Time Interval: {time_interval}")
-        print(f"Image Size: {image_size}")
+        print(f"Image Size: {image_size} (optimized for {target_resolution}m native resolution)")
+        print(f"Target Resolution: {target_resolution}m (native for Sentinel-2 RGB/NIR)")
         print(f"Data will be saved to: plastic_detection/data")
         
         # Step 1: Download RGB image for visualization
