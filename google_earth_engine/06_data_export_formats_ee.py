@@ -257,7 +257,7 @@ def export_to_cloud_storage(image, roi, description, bucket, folder='earthengine
     return task
 
 @with_timeout(60)  # 60 second timeout
-def export_statistics_to_csv(image, roi, band_names, output_file='satellite_statistics.csv'):
+def export_statistics_to_csv(image, roi, band_names, output_file='google_earth_engine/downloads/satellite_statistics.csv'):
     """
     Export statistical summaries as CSV
     
@@ -353,9 +353,9 @@ def create_quicklook_images(image, roi):
         
         response = requests.get(rgb_url)
         if response.status_code == 200:
-            with open('quicklook_rgb.png', 'wb') as f:
+            with open('google_earth_engine/downloads/quicklook_rgb.png', 'wb') as f:
                 f.write(response.content)
-            print("✓ RGB quicklook saved: quicklook_rgb.png")
+            print("✓ RGB quicklook saved: google_earth_engine/downloads/quicklook_rgb.png")
             
             # Display
             img = Image.open(io.BytesIO(response.content))
@@ -363,7 +363,7 @@ def create_quicklook_images(image, roi):
             plt.imshow(np.array(img))
             plt.title('Sentinel-2 True Color RGB')
             plt.axis('off')
-            plt.savefig('quicklook_rgb_display.png', dpi=300, bbox_inches='tight')
+            plt.savefig('google_earth_engine/downloads/quicklook_rgb_display.png', dpi=300, bbox_inches='tight')
             plt.show()
         
         # False Color
@@ -375,9 +375,9 @@ def create_quicklook_images(image, roi):
         
         response = requests.get(false_color_url)
         if response.status_code == 200:
-            with open('quicklook_false_color.png', 'wb') as f:
+            with open('google_earth_engine/downloads/quicklook_false_color.png', 'wb') as f:
                 f.write(response.content)
-            print("✓ False color quicklook saved: quicklook_false_color.png")
+            print("✓ False color quicklook saved: google_earth_engine/downloads/quicklook_false_color.png")
         
         # NDVI
         ndvi_url = ndvi_vis.getThumbURL({
@@ -388,9 +388,9 @@ def create_quicklook_images(image, roi):
         
         response = requests.get(ndvi_url)
         if response.status_code == 200:
-            with open('quicklook_ndvi.png', 'wb') as f:
+            with open('google_earth_engine/downloads/quicklook_ndvi.png', 'wb') as f:
                 f.write(response.content)
-            print("✓ NDVI quicklook saved: quicklook_ndvi.png")
+            print("✓ NDVI quicklook saved: google_earth_engine/downloads/quicklook_ndvi.png")
             
             # Display NDVI
             img = Image.open(io.BytesIO(response.content))
@@ -398,13 +398,13 @@ def create_quicklook_images(image, roi):
             plt.imshow(np.array(img))
             plt.title('NDVI (Normalized Difference Vegetation Index)')
             plt.axis('off')
-            plt.savefig('quicklook_ndvi_display.png', dpi=300, bbox_inches='tight')
+            plt.savefig('google_earth_engine/downloads/quicklook_ndvi_display.png', dpi=300, bbox_inches='tight')
             plt.show()
         
     except Exception as e:
         print(f"Could not create quicklooks: {e}")
 
-def create_metadata_file(roi, start_date, end_date, download_urls, output_file='metadata.json'):
+def create_metadata_file(roi, start_date, end_date, download_urls, output_file='google_earth_engine/downloads/metadata.json'):
     """
     Create metadata file with processing information
     
@@ -520,8 +520,8 @@ def main():
     
     # Define area of interest - smaller area to avoid size limits
     roi = ee.Geometry.Rectangle([14.0, 46.0, 14.1, 46.1])  # Reduced area size
-    start_date = '2023-07-15'
-    end_date = '2023-07-25'
+    start_date = '2023-07-01'
+    end_date = '2023-07-31'
     
     print(f"Area of Interest: {roi.getInfo()}")
     print(f"Time Interval: {start_date} to {end_date}\n")

@@ -287,7 +287,7 @@ def detect_changes_rgb(roi, date1, date2):
     
     return image1, image2, change_magnitude
 
-@with_timeout(60)  # 60 second timeout
+@with_timeout(120)  # Increase timeout to 120 seconds for change detection
 def ndvi_change_detection(roi, date1, date2):
     """
     Perform change detection using NDVI
