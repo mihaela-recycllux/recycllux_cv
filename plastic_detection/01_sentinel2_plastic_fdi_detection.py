@@ -501,102 +501,102 @@ def visualize_results(rgb_image, fdi, detection_mask, water_mask, ndwi, bbox, ti
     """
     print("Creating comprehensive visualization...")
     
-    # Determine figure size based on whether we have multi-resolution data
-    if multi_res_data:
-        fig = plt.figure(figsize=(24, 20))
-        subplot_rows, subplot_cols = 4, 4
-    else:
-        fig = plt.figure(figsize=(20, 15))
-        subplot_rows, subplot_cols = 3, 3
+    # Create main visualization with better spacing
+    fig1 = plt.figure(figsize=(18, 12))
+    
+    # Main results (3x3 grid with better spacing)
+    gs1 = fig1.add_gridspec(3, 3, hspace=0.4, wspace=0.3)
     
     # 1. True-color RGB image
-    ax1 = plt.subplot(subplot_rows, subplot_cols, 1)
+    ax1 = fig1.add_subplot(gs1[0, 0])
     ax1.imshow(rgb_image, extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax1.set_title('Sentinel-2 True Color (RGB)\nRomanian Black Sea Coast', fontsize=12)
-    ax1.set_xlabel('Longitude')
-    ax1.set_ylabel('Latitude')
+    ax1.set_title('Sentinel-2 True Color (RGB)\nRomanian Black Sea Coast', fontsize=11, pad=15)
+    ax1.set_xlabel('Longitude', fontsize=10)
+    ax1.set_ylabel('Latitude', fontsize=10)
     ax1.grid(True, alpha=0.3)
     
     # 2. FDI values
-    ax2 = plt.subplot(subplot_rows, subplot_cols, 2)
+    ax2 = fig1.add_subplot(gs1[0, 1])
     fdi_plot = ax2.imshow(fdi, cmap='RdBu_r', vmin=-0.05, vmax=0.05,
                          extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax2.set_title(f'Floating Debris Index (FDI)\nRange: {np.nanmin(fdi):.4f} to {np.nanmax(fdi):.4f}', fontsize=12)
-    ax2.set_xlabel('Longitude')
-    ax2.set_ylabel('Latitude')
+    ax2.set_title(f'Floating Debris Index (FDI)\nRange: {np.nanmin(fdi):.4f} to {np.nanmax(fdi):.4f}', fontsize=11, pad=15)
+    ax2.set_xlabel('Longitude', fontsize=10)
+    ax2.set_ylabel('Latitude', fontsize=10)
     ax2.grid(True, alpha=0.3)
-    plt.colorbar(fdi_plot, ax=ax2, label='FDI Value')
+    cbar1 = plt.colorbar(fdi_plot, ax=ax2, shrink=0.8)
+    cbar1.set_label('FDI Value', fontsize=9)
     
     # 3. Water mask (NDWI)
-    ax3 = plt.subplot(subplot_rows, subplot_cols, 3)
+    ax3 = fig1.add_subplot(gs1[0, 2])
     water_colors = ['brown', 'blue']  # brown=land, blue=water
     water_cmap = ListedColormap(water_colors)
     water_plot = ax3.imshow(water_mask, cmap=water_cmap, vmin=0, vmax=1,
                            extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax3.set_title(f'Water/Land Mask (NDWI)\nWater: {area_stats["water_coverage"]:.1f}%, Land: {area_stats["land_coverage"]:.1f}%', fontsize=12)
-    ax3.set_xlabel('Longitude')
-    ax3.set_ylabel('Latitude')
+    ax3.set_title(f'Water/Land Mask (NDWI)\nWater: {area_stats["water_coverage"]:.1f}%, Land: {area_stats["land_coverage"]:.1f}%', fontsize=11, pad=15)
+    ax3.set_xlabel('Longitude', fontsize=10)
+    ax3.set_ylabel('Latitude', fontsize=10)
     ax3.grid(True, alpha=0.3)
     
     # Add legend for water mask
     import matplotlib.patches as mpatches
     land_patch = mpatches.Patch(color='brown', label='Land')
     water_patch = mpatches.Patch(color='blue', label='Water')
-    ax3.legend(handles=[land_patch, water_patch], loc='upper right')
+    ax3.legend(handles=[land_patch, water_patch], loc='upper right', fontsize=9)
     
     # 4. Detection mask (binary) - Water areas only
-    ax4 = plt.subplot(subplot_rows, subplot_cols, 4)
+    ax4 = fig1.add_subplot(gs1[1, 0])
     # Create custom colormap for detection results
     colors = ['navy', 'red']  # navy=water, red=potential plastic
     cmap = ListedColormap(colors)
     detection_plot = ax4.imshow(detection_mask, cmap=cmap, vmin=0, vmax=1,
                                extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax4.set_title(f'Plastic Detection (Water Only)\nThreshold: {threshold}', fontsize=12)
-    ax4.set_xlabel('Longitude')
-    ax4.set_ylabel('Latitude')
+    ax4.set_title(f'Plastic Detection (Water Only)\nThreshold: {threshold}', fontsize=11, pad=15)
+    ax4.set_xlabel('Longitude', fontsize=10)
+    ax4.set_ylabel('Latitude', fontsize=10)
     ax4.grid(True, alpha=0.3)
     
     # Add custom legend for detection mask
     water_clean_patch = mpatches.Patch(color='navy', label='Clean Water')
     plastic_patch = mpatches.Patch(color='red', label='Detected Plastic')
-    ax4.legend(handles=[water_clean_patch, plastic_patch], loc='upper right')
+    ax4.legend(handles=[water_clean_patch, plastic_patch], loc='upper right', fontsize=9)
     
     # 5. FDI histogram
-    ax5 = plt.subplot(subplot_rows, subplot_cols, 5)
+    ax5 = fig1.add_subplot(gs1[1, 1])
     valid_fdi = fdi[~np.isnan(fdi)]
     ax5.hist(valid_fdi, bins=50, alpha=0.7, color='skyblue', edgecolor='black')
     ax5.axvline(threshold, color='red', linestyle='--', linewidth=2, label=f'Threshold: {threshold}')
-    ax5.set_xlabel('FDI Value')
-    ax5.set_ylabel('Frequency')
-    ax5.set_title('FDI Distribution', fontsize=12)
+    ax5.set_xlabel('FDI Value', fontsize=10)
+    ax5.set_ylabel('Frequency', fontsize=10)
+    ax5.set_title('FDI Distribution', fontsize=11, pad=15)
     ax5.grid(True, alpha=0.3)
-    ax5.legend()
+    ax5.legend(fontsize=9)
     
     # 6. RGB with detection overlay
-    ax6 = plt.subplot(subplot_rows, subplot_cols, 6)
+    ax6 = fig1.add_subplot(gs1[1, 2])
     ax6.imshow(rgb_image, extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
     
     # Overlay detection mask with transparency
     detection_overlay = np.ma.masked_where(detection_mask != 1, detection_mask)
     ax6.imshow(detection_overlay, cmap='Reds', alpha=0.6, vmin=0, vmax=1,
               extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax6.set_title('RGB + Plastic Detection Overlay', fontsize=12)
-    ax6.set_xlabel('Longitude')
-    ax6.set_ylabel('Latitude')
+    ax6.set_title('RGB + Plastic Detection Overlay', fontsize=11, pad=15)
+    ax6.set_xlabel('Longitude', fontsize=10)
+    ax6.set_ylabel('Latitude', fontsize=10)
     ax6.grid(True, alpha=0.3)
     
     # 7. NDWI values
-    ax7 = plt.subplot(subplot_rows, subplot_cols, 7)
+    ax7 = fig1.add_subplot(gs1[2, 0])
     ndwi_plot = ax7.imshow(ndwi, cmap='RdBu', vmin=-1, vmax=1,
                           extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax7.set_title(f'NDWI (Water Detection)\nRange: {np.nanmin(ndwi):.3f} to {np.nanmax(ndwi):.3f}', fontsize=12)
-    ax7.set_xlabel('Longitude')
-    ax7.set_ylabel('Latitude')
+    ax7.set_title(f'NDWI (Water Detection)\nRange: {np.nanmin(ndwi):.3f} to {np.nanmax(ndwi):.3f}', fontsize=11, pad=15)
+    ax7.set_xlabel('Longitude', fontsize=10)
+    ax7.set_ylabel('Latitude', fontsize=10)
     ax7.grid(True, alpha=0.3)
-    plt.colorbar(ndwi_plot, ax=ax7, label='NDWI Value')
+    cbar2 = plt.colorbar(ndwi_plot, ax=ax7, shrink=0.8)
+    cbar2.set_label('NDWI Value', fontsize=9)
     
     # 8. Area statistics and information
-    ax8 = plt.subplot(subplot_rows, subplot_cols, 8)
+    ax8 = fig1.add_subplot(gs1[2, 1])
     ax8.axis('off')
     
     stats_text = f"""
@@ -614,28 +614,20 @@ Time Period:
 
 Area Breakdown:
 • Total AOI: {area_stats['total_area_km2']:.2f} km²
-• Water area: {area_stats['water_area_km2']:.2f} km² ({area_stats['water_coverage']:.1f}%)
-• Land area: {area_stats['land_area_km2']:.2f} km² ({area_stats['land_coverage']:.1f}%)
+• Water area: {area_stats['water_area_km2']:.2f} km²
+• Land area: {area_stats['land_area_km2']:.2f} km²
 • Detected plastic: {area_stats['detected_area_km2']:.4f} km²
 • Plastic area: {area_stats['detected_area_m2']:.0f} m²
 
 Detection Statistics:
 • Water pixels: {area_stats['water_pixels']:,}
 • Detected pixels: {area_stats['detected_pixels']:,}
-• Land pixels: {area_stats['land_pixels']:,}
 • Coverage: {area_stats['plastic_percentage']:.3f}% of water area
 • FDI threshold: {threshold}
 
 Water Detection:
-• Method: NDWI (Green-NIR)/(Green+NIR)
-• NDWI threshold: 0.0
-• Water vs Land separation successful
-
-Plastic Detection:
-• Method: Floating Debris Index (FDI)
-• Applied only to water areas
+• Method: NDWI threshold: 0.0
 • Satellite: Sentinel-2 L2A
-• Bands: B03 (Green), B04 (Red), B08 (NIR), B11 (SWIR)
     """
     
     ax8.text(0.05, 0.95, stats_text, transform=ax8.transAxes, fontsize=9,
@@ -643,73 +635,78 @@ Plastic Detection:
              bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.8))
     
     # 9. Water/Land pie chart
-    ax9 = plt.subplot(subplot_rows, subplot_cols, 9)
+    ax9 = fig1.add_subplot(gs1[2, 2])
     sizes = [area_stats['water_coverage'], area_stats['land_coverage']]
     labels = [f"Water\n{area_stats['water_coverage']:.1f}%", f"Land\n{area_stats['land_coverage']:.1f}%"]
     colors = ['lightblue', 'lightcoral']
     ax9.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax9.set_title('Area Distribution', fontsize=12)
+    ax9.set_title('Area Distribution', fontsize=11, pad=15)
     
-    # If multi-resolution data is available, add comparison plots
+    plt.suptitle('Water-Masked Plastic Detection using Sentinel-2 FDI Method\nRomanian Black Sea Coast', 
+                 fontsize=14, y=0.98)
+    
+    # Save the main plot
+    data_dir = "plastic_detection/data"
+    os.makedirs(data_dir, exist_ok=True)
+    
+    output_filename = os.path.join(data_dir, f"fdi_plastic_detection_main_{time_interval[0]}_{time_interval[1]}.png")
+    plt.savefig(output_filename, dpi=300, bbox_inches='tight')
+    print(f"✓ Main results saved as: {output_filename}")
+    plt.show()
+    
+    # Create multi-resolution comparison if available
     if multi_res_data:
-        # 10-12. Multi-resolution detection masks
+        print("Creating multi-resolution analysis...")
+        
+        fig2 = plt.figure(figsize=(16, 10))
+        gs2 = fig2.add_gridspec(2, 3, hspace=0.35, wspace=0.3)
+        
+        # Multi-resolution detection masks
         for i, (res_name, res_data) in enumerate(multi_res_data.items()):
-            ax = plt.subplot(subplot_rows, subplot_cols, 10 + i)
+            ax = fig2.add_subplot(gs2[0, i])
+            colors = ['navy', 'red']
+            cmap = ListedColormap(colors)
             ax.imshow(res_data['detection_mask'], cmap=cmap, vmin=0, vmax=1,
                      extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
             size_str = f"{res_data['size'][0]}x{res_data['size'][1]}"
             plastic_area = res_data['area_stats']['detected_area_m2']
             water_pct = res_data['area_stats']['water_coverage']
-            ax.set_title(f'{res_name.title()} Res ({size_str})\n{plastic_area:.0f} m² | Water: {water_pct:.1f}%', fontsize=11)
-            ax.set_xlabel('Longitude')
-            ax.set_ylabel('Latitude')
+            ax.set_title(f'{res_name.title()} Resolution\n{size_str} | {plastic_area:.0f} m²', fontsize=11, pad=15)
+            ax.set_xlabel('Longitude', fontsize=10)
+            ax.set_ylabel('Latitude', fontsize=10)
             ax.grid(True, alpha=0.3)
         
-        # 13. Resolution comparison chart
-        ax13 = plt.subplot(subplot_rows, subplot_cols, 13)
+        # Resolution comparison charts
+        ax_comp1 = fig2.add_subplot(gs2[1, 0])
         res_names = list(multi_res_data.keys())
         detected_areas = [multi_res_data[name]['area_stats']['detected_area_m2'] for name in res_names]
-        pixel_counts = [multi_res_data[name]['area_stats']['detected_pixels'] for name in res_names]
         
-        bars = ax13.bar(res_names, detected_areas, color=['lightblue', 'orange', 'lightgreen'])
-        ax13.set_title('Detected Plastic Area by Resolution', fontsize=11)
-        ax13.set_ylabel('Detected Area (m²)')
-        ax13.set_xlabel('Resolution')
+        bars = ax_comp1.bar(res_names, detected_areas, color=['lightblue', 'orange', 'lightgreen'])
+        ax_comp1.set_title('Detected Plastic Area by Resolution', fontsize=11, pad=15)
+        ax_comp1.set_ylabel('Detected Area (m²)', fontsize=10)
+        ax_comp1.set_xlabel('Resolution', fontsize=10)
         
         # Add value labels on bars
-        for bar, area, pixels in zip(bars, detected_areas, pixel_counts):
-            ax13.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(detected_areas)*0.01,
-                     f'{area:.0f} m²\n({pixels} px)', ha='center', va='bottom', fontsize=9)
+        for bar, area in zip(bars, detected_areas):
+            ax_comp1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(detected_areas)*0.02,
+                         f'{area:.0f} m²', ha='center', va='bottom', fontsize=9)
         
-        # 14. Water coverage comparison
-        ax14 = plt.subplot(subplot_rows, subplot_cols, 14)
+        # Water coverage comparison
+        ax_comp2 = fig2.add_subplot(gs2[1, 1])
         water_coverages = [multi_res_data[name]['area_stats']['water_coverage'] for name in res_names]
-        ax14.bar(res_names, water_coverages, color=['lightcyan', 'lightyellow', 'lightpink'])
-        ax14.set_title('Water Coverage by Resolution', fontsize=11)
-        ax14.set_ylabel('Water Coverage (%)')
-        ax14.set_xlabel('Resolution')
+        ax_comp2.bar(res_names, water_coverages, color=['lightcyan', 'lightyellow', 'lightpink'])
+        ax_comp2.set_title('Water Coverage by Resolution', fontsize=11, pad=15)
+        ax_comp2.set_ylabel('Water Coverage (%)', fontsize=10)
+        ax_comp2.set_xlabel('Resolution', fontsize=10)
         
         # Add value labels
         for i, (name, coverage) in enumerate(zip(res_names, water_coverages)):
-            ax14.text(i, coverage + max(water_coverages)*0.01, f'{coverage:.1f}%', 
-                     ha='center', va='bottom', fontsize=9)
+            ax_comp2.text(i, coverage + max(water_coverages)*0.02, f'{coverage:.1f}%', 
+                         ha='center', va='bottom', fontsize=9)
         
-        # 15. Detection percentage comparison (water only)
-        ax15 = plt.subplot(subplot_rows, subplot_cols, 15)
-        percentages = [multi_res_data[name]['area_stats']['plastic_percentage'] for name in res_names]
-        ax15.bar(res_names, percentages, color=['salmon', 'khaki', 'lightsteelblue'])
-        ax15.set_title('Plastic Coverage in Water Areas', fontsize=11)
-        ax15.set_ylabel('Plastic Coverage (%)')
-        ax15.set_xlabel('Resolution')
-        
-        # Add value labels
-        for i, (name, pct) in enumerate(zip(res_names, percentages)):
-            ax15.text(i, pct + max(percentages)*0.01, f'{pct:.3f}%', 
-                     ha='center', va='bottom', fontsize=9)
-        
-        # 16. Summary comparison
-        ax16 = plt.subplot(subplot_rows, subplot_cols, 16)
-        ax16.axis('off')
+        # Summary statistics
+        ax_comp3 = fig2.add_subplot(gs2[1, 2])
+        ax_comp3.axis('off')
         
         summary_text = f"""
 MULTI-RESOLUTION SUMMARY
@@ -724,11 +721,6 @@ Water Detection Consistency:
 • Med res: {multi_res_data['medium']['area_stats']['water_coverage']:.1f}% water
 • High res: {multi_res_data['high']['area_stats']['water_coverage']:.1f}% water
 
-Plastic Detection in Water:
-• Low res: {multi_res_data['low']['area_stats']['plastic_percentage']:.3f}%
-• Med res: {multi_res_data['medium']['area_stats']['plastic_percentage']:.3f}%
-• High res: {multi_res_data['high']['area_stats']['plastic_percentage']:.3f}%
-
 Method Validation:
 ✓ Water masking prevents land detection
 ✓ FDI applied only to water pixels  
@@ -736,58 +728,90 @@ Method Validation:
 ✓ No false positives from land areas
         """
         
-        ax16.text(0.05, 0.95, summary_text, transform=ax16.transAxes, fontsize=9,
-                 verticalalignment='top', fontfamily='monospace',
-                 bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
+        ax_comp3.text(0.05, 0.95, summary_text, transform=ax_comp3.transAxes, fontsize=10,
+                     verticalalignment='top', fontfamily='monospace',
+                     bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
+        
+        plt.suptitle('Multi-Resolution Analysis - FDI Plastic Detection\nRomanian Black Sea Coast', 
+                     fontsize=14, y=0.98)
+        
+        # Save multi-resolution plot
+        multi_res_filename = os.path.join(data_dir, f"fdi_multi_resolution_{time_interval[0]}_{time_interval[1]}.png")
+        plt.savefig(multi_res_filename, dpi=300, bbox_inches='tight')
+        print(f"✓ Multi-resolution analysis saved as: {multi_res_filename}")
+        plt.show()
     
-    plt.tight_layout()
+    # Create separate binary mask visualization
+    print("Creating binary mask visualization...")
     
-    # Determine title based on whether multi-resolution data is included
-    if multi_res_data:
-        suptitle = 'Water-Masked Plastic Detection - Multi-Resolution FDI Analysis\nRomanian Black Sea Coast'
-    else:
-        suptitle = 'Water-Masked Plastic Detection using Sentinel-2 FDI Method\nRomanian Black Sea Coast'
+    fig3 = plt.figure(figsize=(12, 8))
+    gs3 = fig3.add_gridspec(2, 2, hspace=0.35, wspace=0.3)
     
-    plt.suptitle(suptitle, fontsize=16, y=0.98)
-    
-    # Create data directory if it doesn't exist
-    data_dir = "plastic_detection/data"
-    os.makedirs(data_dir, exist_ok=True)
-    
-    # Save the plot with appropriate filename
-    if multi_res_data:
-        output_filename = os.path.join(data_dir, f"water_masked_plastic_detection_fdi_{time_interval[0]}_{time_interval[1]}.png")
-    else:
-        output_filename = os.path.join(data_dir, f"water_masked_plastic_detection_fdi_{time_interval[0]}_{time_interval[1]}.png")
-    
-    plt.savefig(output_filename, dpi=300, bbox_inches='tight')
-    print(f"✓ Results saved as: {output_filename}")
-    
-    # Also save individual binary mask as separate image
-    fig_mask = plt.figure(figsize=(12, 10))
-    ax_mask = plt.subplot(1, 1, 1)
+    # Large binary mask
+    ax_mask1 = fig3.add_subplot(gs3[0, :])
     colors = ['navy', 'red']
     cmap_mask = ListedColormap(colors)
-    mask_plot = ax_mask.imshow(detection_mask, cmap=cmap_mask, vmin=0, vmax=1,
+    mask_plot = ax_mask1.imshow(detection_mask, cmap=cmap_mask, vmin=0, vmax=1,
                               extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax_mask.set_title(f'Water-Only Plastic Detection Mask\nDetected: {area_stats["detected_area_m2"]:.0f} m² ({area_stats["plastic_percentage"]:.3f}% of water)', fontsize=14)
-    ax_mask.set_xlabel('Longitude')
-    ax_mask.set_ylabel('Latitude')
-    ax_mask.grid(True, alpha=0.3)
+    ax_mask1.set_title(f'Water-Only Plastic Detection Mask\nDetected: {area_stats["detected_area_m2"]:.0f} m² ({area_stats["plastic_percentage"]:.3f}% of water)', fontsize=12, pad=15)
+    ax_mask1.set_xlabel('Longitude', fontsize=10)
+    ax_mask1.set_ylabel('Latitude', fontsize=10)
+    ax_mask1.grid(True, alpha=0.3)
     
     # Add legend
     water_clean_patch = mpatches.Patch(color='navy', label='Clean Water')
     plastic_patch = mpatches.Patch(color='red', label=f'Detected Plastic ({area_stats["detected_pixels"]} pixels)')
-    ax_mask.legend(handles=[water_clean_patch, plastic_patch], loc='upper right')
+    ax_mask1.legend(handles=[water_clean_patch, plastic_patch], loc='upper right', fontsize=10)
     
-    # Add colorbar
-    cbar = plt.colorbar(mask_plot, ax=ax_mask, ticks=[0, 1])
-    cbar.ax.set_yticklabels(['Clean Water', 'Plastic'])
+    # RGB with overlay
+    ax_mask2 = fig3.add_subplot(gs3[1, 0])
+    ax_mask2.imshow(rgb_image, extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+    detection_overlay = np.ma.masked_where(detection_mask != 1, detection_mask)
+    ax_mask2.imshow(detection_overlay, cmap='Reds', alpha=0.7, vmin=0, vmax=1,
+                   extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+    ax_mask2.set_title('RGB + Detection Overlay', fontsize=11, pad=15)
+    ax_mask2.set_xlabel('Longitude', fontsize=10)
+    ax_mask2.set_ylabel('Latitude', fontsize=10)
+    ax_mask2.grid(True, alpha=0.3)
     
-    mask_filename = os.path.join(data_dir, f"water_only_binary_mask_fdi_{time_interval[0]}_{time_interval[1]}.png")
+    # Statistics summary
+    ax_mask3 = fig3.add_subplot(gs3[1, 1])
+    ax_mask3.axis('off')
+    
+    mask_stats_text = f"""
+DETECTION SUMMARY
+
+Detection Performance:
+• Total water area: {area_stats['water_area_km2']:.3f} km²
+• Detected plastic area: {area_stats['detected_area_km2']:.4f} km²
+• Plastic coverage: {area_stats['plastic_percentage']:.3f}% of water
+• Detected pixels: {area_stats['detected_pixels']:,}
+
+Method Details:
+• Algorithm: Floating Debris Index (FDI)
+• Threshold: {threshold}
+• Water masking: NDWI > 0.0
+• Satellite: Sentinel-2 L2A
+• Resolution: 10m pixel size
+
+Quality Metrics:
+• Pixel size: {area_stats['pixel_area_m2']:.1f} m²
+• Water detection: {area_stats['water_coverage']:.1f}%
+• Land exclusion: {area_stats['land_coverage']:.1f}%
+    """
+    
+    ax_mask3.text(0.05, 0.95, mask_stats_text, transform=ax_mask3.transAxes, fontsize=10,
+                 verticalalignment='top', fontfamily='monospace',
+                 bbox=dict(boxstyle='round', facecolor='lightcyan', alpha=0.8))
+    
+    plt.suptitle('Binary Detection Mask - Water-Only Plastic Detection\n' + 
+                 f'Romanian Black Sea Coast | {time_interval[0]} to {time_interval[1]}', 
+                 fontsize=13, y=0.98)
+    
+    # Save binary mask visualization
+    mask_filename = os.path.join(data_dir, f"fdi_binary_mask_{time_interval[0]}_{time_interval[1]}.png")
     plt.savefig(mask_filename, dpi=300, bbox_inches='tight')
-    print(f"✓ Water-only binary mask saved as: {mask_filename}")
-    
+    print(f"✓ Binary mask visualization saved as: {mask_filename}")
     plt.show()
 
 def main():

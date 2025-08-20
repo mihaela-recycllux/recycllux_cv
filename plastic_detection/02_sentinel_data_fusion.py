@@ -525,14 +525,12 @@ def visualize_fusion_results(optical_data, sar_data, fused_data, indices, bbox, 
     """
     print("Creating comprehensive visualization with water masking...")
     
-    # Create large figure with multiple subplots
-    fig = plt.figure(figsize=(28, 20))
-    
-    # Create large figure with multiple subplots
-    fig = plt.figure(figsize=(24, 16))
+    # Create main visualization figure with better spacing
+    fig1 = plt.figure(figsize=(18, 12))
+    gs1 = fig1.add_gridspec(3, 4, hspace=0.4, wspace=0.3)
     
     # 1. RGB True Color (Optical)
-    ax1 = plt.subplot(3, 4, 1)
+    ax1 = fig1.add_subplot(gs1[0, 0])
     rgb_image = np.stack([
         optical_data[:, :, 2],  # Red (B04)
         optical_data[:, :, 1],  # Green (B03)
@@ -541,85 +539,92 @@ def visualize_fusion_results(optical_data, sar_data, fused_data, indices, bbox, 
     # Normalize for display
     rgb_display = np.clip(rgb_image * 3.5, 0, 1)
     ax1.imshow(rgb_display, extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax1.set_title('Sentinel-2 RGB\n(True Color)', fontsize=11)
-    ax1.set_xlabel('Longitude')
-    ax1.set_ylabel('Latitude')
+    ax1.set_title('Sentinel-2 RGB\n(True Color)', fontsize=11, pad=15)
+    ax1.set_xlabel('Longitude', fontsize=10)
+    ax1.set_ylabel('Latitude', fontsize=10)
     ax1.grid(True, alpha=0.3)
     
     # 2. NIR band
-    ax2 = plt.subplot(3, 4, 2)
+    ax2 = fig1.add_subplot(gs1[0, 1])
     nir_plot = ax2.imshow(optical_data[:, :, 3], cmap='RdYlGn',
                          extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax2.set_title('Sentinel-2 NIR\n(B08)', fontsize=11)
-    ax2.set_xlabel('Longitude')
-    ax2.set_ylabel('Latitude')
+    ax2.set_title('Sentinel-2 NIR\n(B08)', fontsize=11, pad=15)
+    ax2.set_xlabel('Longitude', fontsize=10)
+    ax2.set_ylabel('Latitude', fontsize=10)
     ax2.grid(True, alpha=0.3)
-    plt.colorbar(nir_plot, ax=ax2, fraction=0.046, pad=0.04)
+    cbar1 = plt.colorbar(nir_plot, ax=ax2, shrink=0.8)
+    cbar1.set_label('Reflectance', fontsize=9)
     
     # 3. VV polarization (SAR)
-    ax3 = plt.subplot(3, 4, 3)
+    ax3 = fig1.add_subplot(gs1[0, 2])
     vv_db = 10 * np.log10(np.maximum(sar_data[:, :, 0], 1e-10))
     vv_plot = ax3.imshow(vv_db, cmap='gray', vmin=-25, vmax=0,
                         extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax3.set_title('Sentinel-1 VV\n(dB)', fontsize=11)
-    ax3.set_xlabel('Longitude')
-    ax3.set_ylabel('Latitude')
+    ax3.set_title('Sentinel-1 VV\n(dB)', fontsize=11, pad=15)
+    ax3.set_xlabel('Longitude', fontsize=10)
+    ax3.set_ylabel('Latitude', fontsize=10)
     ax3.grid(True, alpha=0.3)
-    plt.colorbar(vv_plot, ax=ax3, fraction=0.046, pad=0.04)
+    cbar2 = plt.colorbar(vv_plot, ax=ax3, shrink=0.8)
+    cbar2.set_label('VV (dB)', fontsize=9)
     
     # 4. VH polarization (SAR)
-    ax4 = plt.subplot(3, 4, 4)
+    ax4 = fig1.add_subplot(gs1[0, 3])
     vh_db = 10 * np.log10(np.maximum(sar_data[:, :, 1], 1e-10))
     vh_plot = ax4.imshow(vh_db, cmap='gray', vmin=-30, vmax=-5,
                         extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax4.set_title('Sentinel-1 VH\n(dB)', fontsize=11)
-    ax4.set_xlabel('Longitude')
-    ax4.set_ylabel('Latitude')
+    ax4.set_title('Sentinel-1 VH\n(dB)', fontsize=11, pad=15)
+    ax4.set_xlabel('Longitude', fontsize=10)
+    ax4.set_ylabel('Latitude', fontsize=10)
     ax4.grid(True, alpha=0.3)
-    plt.colorbar(vh_plot, ax=ax4, fraction=0.046, pad=0.04)
+    cbar3 = plt.colorbar(vh_plot, ax=ax4, shrink=0.8)
+    cbar3.set_label('VH (dB)', fontsize=9)
     
     # 5. FDI (Floating Debris Index)
-    ax5 = plt.subplot(3, 4, 5)
+    ax5 = fig1.add_subplot(gs1[1, 0])
     fdi_plot = ax5.imshow(indices['fdi'], cmap='RdBu_r', vmin=-0.05, vmax=0.05,
                          extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax5.set_title('FDI\n(Floating Debris Index)', fontsize=11)
-    ax5.set_xlabel('Longitude')
-    ax5.set_ylabel('Latitude')
+    ax5.set_title('FDI\n(Floating Debris Index)', fontsize=11, pad=15)
+    ax5.set_xlabel('Longitude', fontsize=10)
+    ax5.set_ylabel('Latitude', fontsize=10)
     ax5.grid(True, alpha=0.3)
-    plt.colorbar(fdi_plot, ax=ax5, fraction=0.046, pad=0.04)
+    cbar4 = plt.colorbar(fdi_plot, ax=ax5, shrink=0.8)
+    cbar4.set_label('FDI Value', fontsize=9)
     
     # 6. VH/VV Ratio
-    ax6 = plt.subplot(3, 4, 6)
+    ax6 = fig1.add_subplot(gs1[1, 1])
     ratio_plot = ax6.imshow(indices['vh_vv_ratio'], cmap='viridis', vmin=0, vmax=1,
                            extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax6.set_title('VH/VV Ratio\n(Cross-pol)', fontsize=11)
-    ax6.set_xlabel('Longitude')
-    ax6.set_ylabel('Latitude')
+    ax6.set_title('VH/VV Ratio\n(Cross-pol)', fontsize=11, pad=15)
+    ax6.set_xlabel('Longitude', fontsize=10)
+    ax6.set_ylabel('Latitude', fontsize=10)
     ax6.grid(True, alpha=0.3)
-    plt.colorbar(ratio_plot, ax=ax6, fraction=0.046, pad=0.04)
+    cbar5 = plt.colorbar(ratio_plot, ax=ax6, shrink=0.8)
+    cbar5.set_label('Ratio', fontsize=9)
     
     # 7. Enhanced Plastic Index
-    ax7 = plt.subplot(3, 4, 7)
+    ax7 = fig1.add_subplot(gs1[1, 2])
     plastic_plot = ax7.imshow(indices['enhanced_plastic'], cmap='Reds', vmin=0, vmax=0.1,
                              extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax7.set_title('Enhanced Plastic Index\n(Optical + SAR)', fontsize=11)
-    ax7.set_xlabel('Longitude')
-    ax7.set_ylabel('Latitude')
+    ax7.set_title('Enhanced Plastic Index\n(Optical + SAR)', fontsize=11, pad=15)
+    ax7.set_xlabel('Longitude', fontsize=10)
+    ax7.set_ylabel('Latitude', fontsize=10)
     ax7.grid(True, alpha=0.3)
-    plt.colorbar(plastic_plot, ax=ax7, fraction=0.046, pad=0.04)
+    cbar6 = plt.colorbar(plastic_plot, ax=ax7, shrink=0.8)
+    cbar6.set_label('Enhanced Plastic', fontsize=9)
     
     # 8. SAR Intensity
-    ax8 = plt.subplot(3, 4, 8)
+    ax8 = fig1.add_subplot(gs1[1, 3])
     intensity_plot = ax8.imshow(indices['sar_intensity'], cmap='plasma',
                                extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-    ax8.set_title('SAR Intensity\n(√(VV² + VH²))', fontsize=11)
-    ax8.set_xlabel('Longitude')
-    ax8.set_ylabel('Latitude')
+    ax8.set_title('SAR Intensity\n(√(VV² + VH²))', fontsize=11, pad=15)
+    ax8.set_xlabel('Longitude', fontsize=10)
+    ax8.set_ylabel('Latitude', fontsize=10)
     ax8.grid(True, alpha=0.3)
-    plt.colorbar(intensity_plot, ax=ax8, fraction=0.046, pad=0.04)
+    cbar7 = plt.colorbar(intensity_plot, ax=ax8, shrink=0.8)
+    cbar7.set_label('Intensity', fontsize=9)
     
-    # 9. Correlation matrix between bands
-    ax9 = plt.subplot(3, 4, 9)
+    # 9. Band correlation matrix
+    ax9 = fig1.add_subplot(gs1[2, 0])
     # Calculate correlation matrix for central region to avoid edge effects
     h, w = fused_data.shape[:2]
     center_data = fused_data[h//4:3*h//4, w//4:3*w//4, :].reshape(-1, 7)
@@ -628,27 +633,28 @@ def visualize_fusion_results(optical_data, sar_data, fused_data, indices, bbox, 
     if len(center_data_clean) > 100:
         corr_matrix = np.corrcoef(center_data_clean.T)
         im = ax9.imshow(corr_matrix, cmap='RdBu_r', vmin=-1, vmax=1)
-        ax9.set_title('Band Correlation Matrix', fontsize=11)
+        ax9.set_title('Band Correlation Matrix', fontsize=11, pad=15)
         band_labels = ['B02', 'B03', 'B04', 'B08', 'B11', 'VV', 'VH']
         ax9.set_xticks(range(7))
         ax9.set_yticks(range(7))
-        ax9.set_xticklabels(band_labels, rotation=45)
-        ax9.set_yticklabels(band_labels)
-        plt.colorbar(im, ax=ax9, fraction=0.046, pad=0.04)
+        ax9.set_xticklabels(band_labels, rotation=45, fontsize=9)
+        ax9.set_yticklabels(band_labels, fontsize=9)
+        cbar8 = plt.colorbar(im, ax=ax9, shrink=0.8)
+        cbar8.set_label('Correlation', fontsize=9)
     else:
         ax9.text(0.5, 0.5, 'Insufficient\nvalid data\nfor correlation', 
-                ha='center', va='center', transform=ax9.transAxes)
-        ax9.set_title('Band Correlation Matrix', fontsize=11)
+                ha='center', va='center', transform=ax9.transAxes, fontsize=10)
+        ax9.set_title('Band Correlation Matrix', fontsize=11, pad=15)
     
     # 10. Feature importance proxy (standard deviation)
-    ax10 = plt.subplot(3, 4, 10)
+    ax10 = fig1.add_subplot(gs1[2, 1])
     if len(center_data_clean) > 100:
         feature_std = np.std(center_data_clean, axis=0)
         feature_names_short = ['B02', 'B03', 'B04', 'B08', 'B11', 'VV', 'VH']
         bars = ax10.bar(feature_names_short, feature_std)
-        ax10.set_title('Feature Variability\n(Std Dev)', fontsize=11)
-        ax10.set_ylabel('Standard Deviation')
-        ax10.tick_params(axis='x', rotation=45)
+        ax10.set_title('Feature Variability\n(Std Dev)', fontsize=11, pad=15)
+        ax10.set_ylabel('Standard Deviation', fontsize=10)
+        ax10.tick_params(axis='x', rotation=45, labelsize=9)
         # Color bars by sensor type
         for i, bar in enumerate(bars):
             if i < 5:  # Optical bands
@@ -657,126 +663,106 @@ def visualize_fusion_results(optical_data, sar_data, fused_data, indices, bbox, 
                 bar.set_color('orange')
     else:
         ax10.text(0.5, 0.5, 'Insufficient\nvalid data', 
-                 ha='center', va='center', transform=ax10.transAxes)
-        ax10.set_title('Feature Variability', fontsize=11)
+                 ha='center', va='center', transform=ax10.transAxes, fontsize=10)
+        ax10.set_title('Feature Variability', fontsize=11, pad=15)
     
-    # 11. Data fusion workflow diagram
-    ax11 = plt.subplot(3, 4, 11)
-    ax11.axis('off')
-    workflow_text = """
-DATA FUSION WORKFLOW
-
-1. Sentinel-2 Download
-   ├─ Blue (B02)
-   ├─ Green (B03)  
-   ├─ Red (B04)
-   ├─ NIR (B08)
-   └─ SWIR (B11)
-
-2. Sentinel-1 Download
-   ├─ VV polarization
-   └─ VH polarization
-
-3. Spatial Alignment
-   └─ Same bbox & resolution
-
-4. Feature Engineering
-   ├─ Spectral indices (NDVI, FDI)
-   ├─ SAR indices (ratios, intensity)
-   └─ Multi-sensor combinations
-
-5. ML-Ready Dataset
-   └─ 15 features per pixel
-    """
-    ax11.text(0.05, 0.95, workflow_text, transform=ax11.transAxes, fontsize=9,
-             verticalalignment='top', fontfamily='monospace',
-             bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
+    # 11. Water mask visualization
+    ax11 = fig1.add_subplot(gs1[2, 2])
+    water_colors = ['brown', 'blue']  # brown=land, blue=water
+    water_cmap = ListedColormap(water_colors)
+    water_plot = ax11.imshow(water_mask, cmap=water_cmap, vmin=0, vmax=1,
+                           extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
+    ax11.set_title('Water/Land Mask\n(NDWI Based)', fontsize=11, pad=15)
+    ax11.set_xlabel('Longitude', fontsize=10)
+    ax11.set_ylabel('Latitude', fontsize=10)
+    ax11.grid(True, alpha=0.3)
+    
+    # Add legend for water mask
+    import matplotlib.patches as mpatches
+    land_patch = mpatches.Patch(color='brown', label='Land')
+    water_patch = mpatches.Patch(color='blue', label='Water')
+    ax11.legend(handles=[land_patch, water_patch], loc='upper right', fontsize=9)
     
     # 12. Statistics and information
-    ax12 = plt.subplot(3, 4, 12)
+    ax12 = fig1.add_subplot(gs1[2, 3])
     ax12.axis('off')
     
     # Calculate some statistics
     valid_pixels = ~np.any(np.isnan(fused_data), axis=2)
     total_pixels = valid_pixels.size
     valid_count = np.sum(valid_pixels)
+    water_coverage = np.sum(water_mask == 1) / total_pixels * 100
     
-    stats_text = f"""
-FUSION STATISTICS
+    stats_text = f"""FUSION STATISTICS
 
 Area of Interest:
 • Bbox: {bbox.min_x:.2f}°E - {bbox.max_x:.2f}°E
         {bbox.min_y:.2f}°N - {bbox.max_y:.2f}°N
 • Region: Romanian Black Sea
-• Focus: Constanța Port & Danube Delta
 
-Time Period:
-• {time_interval[0]} to {time_interval[1]}
+Time Period: {time_interval[0]} to {time_interval[1]}
 
 Data Quality:
 • Total pixels: {total_pixels:,}
 • Valid pixels: {valid_count:,}
-• Data coverage: {100*valid_count/total_pixels:.1f}%
+• Coverage: {100*valid_count/total_pixels:.1f}%
+• Water: {water_coverage:.1f}%
 
-Sensors Combined:
+Sensors:
 • Sentinel-2 L2A (optical)
 • Sentinel-1 IW (SAR)
 
-Output Features:
+Features:
 • Original bands: 7
 • Derived indices: 8
 • Total features: 15
 
-ML Applications:
+Applications:
 • Plastic debris detection
 • Water quality monitoring
-• Marine pollution assessment
-    """
+• Marine pollution assessment"""
     
-    ax12.text(0.05, 0.95, stats_text, transform=ax12.transAxes, fontsize=9,
+    ax12.text(0.02, 0.98, stats_text, transform=ax12.transAxes, fontsize=8,
              verticalalignment='top', fontfamily='monospace',
-             bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.8))
+             bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.8, pad=0.3))
     
-    plt.tight_layout()
     plt.suptitle('Sentinel-1 SAR + Sentinel-2 Optical Data Fusion\nRomanian Black Sea Coast', 
-                 fontsize=16, y=0.98)
+                 fontsize=14, y=0.98)
     
-    # Create data directory if it doesn't exist
+    # Save the main plot
     data_dir = "plastic_detection/data"
     os.makedirs(data_dir, exist_ok=True)
     
-    # Save the plot
-    output_filename = os.path.join(data_dir, f"data_fusion_sar_optical_{time_interval[0]}_{time_interval[1]}.png")
+    output_filename = os.path.join(data_dir, f"data_fusion_main_{time_interval[0]}_{time_interval[1]}.png")
     plt.savefig(output_filename, dpi=300, bbox_inches='tight')
-    print(f"✓ Visualization saved as: {output_filename}")
-    
+    print(f"✓ Main fusion visualization saved as: {output_filename}")
     plt.show()
     
     # Create separate binary mask visualization if detection_mask is provided
     if detection_mask is not None and area_stats is not None:
-        print("Creating binary mask visualization...")
+        print("Creating enhanced detection visualization...")
         
-        fig_mask = plt.figure(figsize=(15, 12))
+        fig2 = plt.figure(figsize=(16, 10))
+        gs2 = fig2.add_gridspec(2, 3, hspace=0.35, wspace=0.3)
         
         # Binary mask
-        ax_mask1 = plt.subplot(2, 2, 1)
+        ax_mask1 = fig2.add_subplot(gs2[0, 0])
         colors = ['navy', 'red']
         cmap_mask = ListedColormap(colors)
         mask_plot = ax_mask1.imshow(detection_mask, cmap=cmap_mask, vmin=0, vmax=1,
                                    extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-        ax_mask1.set_title(f'Enhanced Plastic Detection Mask\nDetected: {area_stats["detected_area_m2"]:.0f} m²', fontsize=12)
-        ax_mask1.set_xlabel('Longitude')
-        ax_mask1.set_ylabel('Latitude')
+        ax_mask1.set_title(f'Enhanced Plastic Detection Mask\nDetected: {area_stats["detected_area_m2"]:.0f} m²', fontsize=12, pad=15)
+        ax_mask1.set_xlabel('Longitude', fontsize=10)
+        ax_mask1.set_ylabel('Latitude', fontsize=10)
         ax_mask1.grid(True, alpha=0.3)
         
         # Add legend
-        import matplotlib.patches as mpatches
         water_patch = mpatches.Patch(color='navy', label='Water')
         plastic_patch = mpatches.Patch(color='red', label=f'Detected Plastic ({area_stats["detected_pixels"]} pixels)')
-        ax_mask1.legend(handles=[water_patch, plastic_patch], loc='upper right')
+        ax_mask1.legend(handles=[water_patch, plastic_patch], loc='upper right', fontsize=10)
         
         # RGB with overlay
-        ax_mask2 = plt.subplot(2, 2, 2)
+        ax_mask2 = fig2.add_subplot(gs2[0, 1])
         rgb_image = np.stack([
             optical_data[:, :, 2],  # Red
             optical_data[:, :, 1],  # Green
@@ -789,27 +775,57 @@ ML Applications:
         detection_overlay = np.ma.masked_where(detection_mask != 1, detection_mask)
         ax_mask2.imshow(detection_overlay, cmap='Reds', alpha=0.7, vmin=0, vmax=1,
                        extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-        ax_mask2.set_title('RGB + Detection Overlay', fontsize=12)
-        ax_mask2.set_xlabel('Longitude')
-        ax_mask2.set_ylabel('Latitude')
+        ax_mask2.set_title('RGB + Detection Overlay', fontsize=12, pad=15)
+        ax_mask2.set_xlabel('Longitude', fontsize=10)
+        ax_mask2.set_ylabel('Latitude', fontsize=10)
         ax_mask2.grid(True, alpha=0.3)
         
         # Enhanced plastic index
-        ax_mask3 = plt.subplot(2, 2, 3)
+        ax_mask3 = fig2.add_subplot(gs2[0, 2])
         enhanced_plot = ax_mask3.imshow(indices['enhanced_plastic'], cmap='hot', vmin=0, vmax=0.2,
                                        extent=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y])
-        ax_mask3.set_title('Enhanced Plastic Index\n(Multi-sensor Fusion)', fontsize=12)
-        ax_mask3.set_xlabel('Longitude')
-        ax_mask3.set_ylabel('Latitude')
+        ax_mask3.set_title('Enhanced Plastic Index\n(Multi-sensor Fusion)', fontsize=12, pad=15)
+        ax_mask3.set_xlabel('Longitude', fontsize=10)
+        ax_mask3.set_ylabel('Latitude', fontsize=10)
         ax_mask3.grid(True, alpha=0.3)
-        plt.colorbar(enhanced_plot, ax=ax_mask3, fraction=0.046, pad=0.04)
+        cbar_enh = plt.colorbar(enhanced_plot, ax=ax_mask3, shrink=0.8)
+        cbar_enh.set_label('Enhanced Plastic', fontsize=9)
+        
+        # Index comparison histograms
+        ax_hist1 = fig2.add_subplot(gs2[1, 0])
+        valid_fdi = indices['fdi'][~np.isnan(indices['fdi'])]
+        valid_enhanced = indices['enhanced_plastic'][~np.isnan(indices['enhanced_plastic'])]
+        
+        ax_hist1.hist(valid_fdi, bins=30, alpha=0.7, label='FDI', color='skyblue', density=True)
+        ax_hist1.hist(valid_enhanced * 10, bins=30, alpha=0.7, label='Enhanced×10', color='orange', density=True)
+        ax_hist1.set_xlabel('Index Value', fontsize=10)
+        ax_hist1.set_ylabel('Density', fontsize=10)
+        ax_hist1.set_title('Index Distributions', fontsize=11, pad=15)
+        ax_hist1.legend(fontsize=9)
+        ax_hist1.grid(True, alpha=0.3)
+        
+        # SAR vs Optical scatter plot
+        ax_scatter = fig2.add_subplot(gs2[1, 1])
+        if len(center_data_clean) > 1000:
+            # Sample data for faster plotting
+            sample_idx = np.random.choice(len(center_data_clean), 1000, replace=False)
+            sample_data = center_data_clean[sample_idx]
+            
+            ax_scatter.scatter(sample_data[:, 2], sample_data[:, 5], alpha=0.5, s=10)  # Red vs VV
+            ax_scatter.set_xlabel('Red Band (B04)', fontsize=10)
+            ax_scatter.set_ylabel('VV Polarization', fontsize=10)
+            ax_scatter.set_title('Optical vs SAR\nCorrelation', fontsize=11, pad=15)
+            ax_scatter.grid(True, alpha=0.3)
+        else:
+            ax_scatter.text(0.5, 0.5, 'Insufficient\ndata for\nscatter plot', 
+                           ha='center', va='center', transform=ax_scatter.transAxes, fontsize=10)
+            ax_scatter.set_title('Optical vs SAR Correlation', fontsize=11, pad=15)
         
         # Statistics
-        ax_mask4 = plt.subplot(2, 2, 4)
-        ax_mask4.axis('off')
+        ax_stats = fig2.add_subplot(gs2[1, 2])
+        ax_stats.axis('off')
         
-        stats_text = f"""
-ENHANCED DETECTION STATISTICS (WATER AREAS ONLY)
+        stats_text = f"""ENHANCED DETECTION STATISTICS
 
 Area Coverage:
 • Total AOI: {area_stats['total_area_km2']:.2f} km²
@@ -818,7 +834,7 @@ Area Coverage:
 • Plastic area: {area_stats['detected_area_m2']:.0f} m²
 
 Detection Performance:
-• Plastic coverage: {area_stats['coverage_percentage']:.3f}% of {area_stats['area_type']}
+• Coverage: {area_stats['coverage_percentage']:.3f}%
 • Detected pixels: {area_stats['detected_pixels']:,}
 • Pixel size: {area_stats['pixel_area_m2']:.1f} m²
 
@@ -830,27 +846,145 @@ Multi-sensor Features:
 
 Detection Method:
 • Multi-sensor fusion approach
-• Combines spectral and backscatter info
-• Reduces false positives from clouds
-• Weather-independent SAR component
-        """
+• Combines spectral & backscatter
+• Reduces false positives
+• Weather-independent SAR"""
         
-        ax_mask4.text(0.05, 0.95, stats_text, transform=ax_mask4.transAxes, fontsize=10,
+        ax_stats.text(0.02, 0.98, stats_text, transform=ax_stats.transAxes, fontsize=8,
                      verticalalignment='top', fontfamily='monospace',
-                     bbox=dict(boxstyle='round', facecolor='lightcyan', alpha=0.8))
+                     bbox=dict(boxstyle='round', facecolor='lightcyan', alpha=0.8, pad=0.3))
         
-        plt.tight_layout()
         plt.suptitle('Enhanced Plastic Detection - Multi-sensor Binary Analysis\n' + 
                      f'Romanian Black Sea Coast | {time_interval[0]} to {time_interval[1]}', 
                      fontsize=14, y=0.98)
         
-        # Save binary mask visualization
-        data_dir = "plastic_detection/data"
-        mask_filename = os.path.join(data_dir, f"binary_mask_fusion_{time_interval[0]}_{time_interval[1]}.png")
-        plt.savefig(mask_filename, dpi=300, bbox_inches='tight')
-        print(f"✓ Binary mask visualization saved as: {mask_filename}")
-        
+        # Save enhanced detection visualization
+        enhanced_filename = os.path.join(data_dir, f"enhanced_detection_fusion_{time_interval[0]}_{time_interval[1]}.png")
+        plt.savefig(enhanced_filename, dpi=300, bbox_inches='tight')
+        print(f"✓ Enhanced detection visualization saved as: {enhanced_filename}")
         plt.show()
+    
+    # Create workflow diagram
+    print("Creating workflow diagram...")
+    
+    fig3 = plt.figure(figsize=(18, 12))
+    gs3 = fig3.add_gridspec(2, 2, hspace=0.3, wspace=0.2)
+    
+    # Main workflow text
+    ax_workflow = fig3.add_subplot(gs3[0, :])
+    ax_workflow.axis('off')
+    
+    workflow_text = """DATA FUSION WORKFLOW
+
+1. SENTINEL-2 DOWNLOAD          2. SENTINEL-1 DOWNLOAD          3. SPATIAL ALIGNMENT
+   ├─ Blue (B02)                   ├─ VV polarization              ├─ Same bbox & resolution
+   ├─ Green (B03)                  └─ VH polarization              └─ Co-registration
+   ├─ Red (B04)                    
+   ├─ NIR (B08)                    
+   └─ SWIR (B11)                   
+
+4. WATER MASKING                 5. FEATURE ENGINEERING          6. ML-READY DATASET
+   ├─ NDWI calculation             ├─ Spectral indices              ├─ 15 features per pixel
+   ├─ Water/Land separation        │  └─ NDVI, FDI, NDWI            ├─ Water areas only
+   └─ Apply to all processing      ├─ SAR indices                   └─ Standardized format
+                                   │  └─ Ratios, intensity          
+                                   └─ Multi-sensor combinations     
+
+7. PLASTIC DETECTION            8. VALIDATION & OUTPUT           9. APPLICATIONS
+   ├─ Enhanced plastic index       ├─ Area statistics               ├─ Machine learning
+   ├─ Threshold-based detection    ├─ Quality metrics               ├─ Time series analysis
+   └─ Confidence assessment        └─ Visualization                 └─ Operational monitoring"""
+    
+    ax_workflow.text(0.05, 0.95, workflow_text, transform=ax_workflow.transAxes, fontsize=10,
+                    verticalalignment='top', fontfamily='monospace',
+                    bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8, pad=0.5))
+    
+    # Visual flowchart
+    ax_flow = fig3.add_subplot(gs3[1, 0])
+    ax_flow.axis('off')
+    
+    # Create a simple flowchart using matplotlib
+    import matplotlib.patches as mpatches
+    from matplotlib.patches import FancyBboxPatch, ConnectionPatch
+    
+    # Define boxes
+    boxes = [
+        {'xy': (0.1, 0.8), 'text': 'Sentinel-2\nOptical', 'color': 'lightgreen'},
+        {'xy': (0.5, 0.8), 'text': 'Sentinel-1\nSAR', 'color': 'lightcoral'},
+        {'xy': (0.3, 0.6), 'text': 'Co-registration\n& Alignment', 'color': 'lightyellow'},
+        {'xy': (0.3, 0.4), 'text': 'Water Masking\nNDWI > 0', 'color': 'lightcyan'},
+        {'xy': (0.3, 0.2), 'text': 'Enhanced\nPlastic Index', 'color': 'lightpink'},
+        {'xy': (0.3, 0.05), 'text': 'Plastic\nDetection', 'color': 'orange'}
+    ]
+    
+    # Draw boxes
+    for box in boxes:
+        fancy_box = FancyBboxPatch((box['xy'][0]-0.08, box['xy'][1]-0.05), 0.16, 0.1,
+                                  boxstyle="round,pad=0.01", 
+                                  facecolor=box['color'], edgecolor='black', linewidth=1)
+        ax_flow.add_patch(fancy_box)
+        ax_flow.text(box['xy'][0], box['xy'][1], box['text'], ha='center', va='center', 
+                    fontsize=9, fontweight='bold')
+    
+    # Draw arrows
+    arrows = [
+        ((0.1, 0.75), (0.25, 0.65)),   # Sentinel-2 to alignment
+        ((0.5, 0.75), (0.35, 0.65)),   # Sentinel-1 to alignment
+        ((0.3, 0.55), (0.3, 0.45)),    # Alignment to water mask
+        ((0.3, 0.35), (0.3, 0.25)),    # Water mask to index
+        ((0.3, 0.15), (0.3, 0.1))      # Index to detection
+    ]
+    
+    for start, end in arrows:
+        arrow = mpatches.FancyArrowPatch(start, end, 
+                                       arrowstyle='->', mutation_scale=15,
+                                       color='darkblue', linewidth=2)
+        ax_flow.add_patch(arrow)
+    
+    ax_flow.set_xlim(0, 0.6)
+    ax_flow.set_ylim(0, 0.9)
+    ax_flow.set_title('Processing Flow', fontsize=12, fontweight='bold', pad=20)
+    
+    # Advantages and benefits
+    ax_benefits = fig3.add_subplot(gs3[1, 1])
+    ax_benefits.axis('off')
+    
+    benefits_text = """FUSION ADVANTAGES:
+
+• SAR works in all weather conditions
+  (clouds, rain, darkness)
+  
+• Optical provides spectral information 
+  for material classification
+  
+• Combined data improves detection 
+  accuracy and reduces false positives
+  
+• SAR backscatter helps distinguish 
+  plastic from organic materials
+  
+• Water masking eliminates 
+  land-based false positives
+  
+• Multi-sensor approach increases 
+  reliability and confidence
+  
+• Temporal consistency through 
+  different weather conditions"""
+    
+    ax_benefits.text(0.05, 0.95, benefits_text, transform=ax_benefits.transAxes, fontsize=10,
+                    verticalalignment='top', fontfamily='sans-serif',
+                    bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8, pad=0.5))
+    
+    plt.suptitle('Multi-Sensor Data Fusion Workflow\nSentinel-1 SAR + Sentinel-2 Optical', 
+                 fontsize=16, y=0.96)
+    
+    # Save workflow diagram
+    workflow_filename = os.path.join(data_dir, f"fusion_workflow_{time_interval[0]}_{time_interval[1]}.png")
+    plt.savefig(workflow_filename, dpi=300, bbox_inches='tight')
+    print(f"✓ Workflow diagram saved as: {workflow_filename}")
+    plt.show()
+    plt.show()
 
 def save_ml_dataset(ml_dataset, feature_names, time_interval):
     """
