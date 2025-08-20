@@ -9,3 +9,4 @@ rasterio
 xarray
 netCDF4
 scikit-learn
+earthengine-api
