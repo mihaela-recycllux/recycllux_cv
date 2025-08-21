@@ -393,7 +393,6 @@ Dockerfile.local
 figures/
 plots/
 *.eps
-*.pdf
 *.svg
 
 # Keep example plots
