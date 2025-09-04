@@ -55,11 +55,11 @@ def with_timeout(timeout_seconds):
 def initialize_earth_engine():
     """Initialize Google Earth Engine"""
     try:
-        ee.Initialize(project='gedospatial-data')
+        ee.Initialize(project='recycllux-satellite-data')
         print('Earth Engine initialized')
     except ee.EEException:
         ee.Authenticate()
-        ee.Initialize(project='gedospatial-data')
+        ee.Initialize(project='recycllux-satellite-data')
         print('Authenticated and initialized')
 
 def plot_image(img_array, title="Image"):

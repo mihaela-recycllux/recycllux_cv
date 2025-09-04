@@ -47,11 +47,11 @@ def with_timeout(seconds=60):
 def initialize_earth_engine():
     """Initialize Google Earth Engine"""
     try:
-        ee.Initialize(project='gedospatial-data')
+        ee.Initialize(project='recycllux-satellite-data')
         print('Earth Engine initialized')
     except ee.EEException:
         ee.Authenticate()
-        ee.Initialize(project='gedospatial-data')
+        ee.Initialize(project='recycllux-satellite-data')
         print('Authenticated and initialized')
 
 @with_timeout(120)  # 120 second timeout for time series
