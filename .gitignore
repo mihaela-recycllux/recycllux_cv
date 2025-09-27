@@ -417,3 +417,5 @@ sentinelhub-py/
 satellite_outputs/
 data/
 datasets/
+google_earth_engine/downloads/
+Pleiades_visualization/visualizations/
