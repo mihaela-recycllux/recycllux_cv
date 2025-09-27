@@ -415,7 +415,7 @@ scratch/
 playground/
 sentinelhub-py/
 satellite_outputs/
-data/
 datasets/
 google_earth_engine/downloads/
+google_earth_engine/plastic_detection/data/
 Pleiades_visualization/visualizations/
