@@ -1,0 +1,18 @@
+Feature names for fused SAR + Optical dataset:
+==================================================
+ 0: Blue_B02
+ 1: Green_B03
+ 2: Red_B04
+ 3: NIR_B08
+ 4: SWIR_B11
+ 5: VV
+ 6: VH
+ 7: NDVI
+ 8: FDI
+ 9: NDWI
+10: Plastic_Index
+11: VH_VV_Ratio
+12: SAR_Intensity
+13: Depolarization_Ratio
+14: Optical_SAR_Composite
+15: Enhanced_Plastic
