@@ -415,6 +415,6 @@ scratch/
 playground/
 sentinelhub-py/
 satellite_outputs/
-plastic_detection/data
 MARIDA/
-google_earth_engine/plastic_detection/data
+data/
+pleides/
