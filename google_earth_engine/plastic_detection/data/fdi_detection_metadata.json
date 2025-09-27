@@ -1,0 +1,14 @@
+{
+  "filter_name": "FDI",
+  "threshold_used": 0.001,
+  "adaptive_threshold": true,
+  "detections": 484,
+  "detection_rate": 1.2268694550063373,
+  "fdi_stats": {
+    "count": 39450,
+    "mean": -0.13498535752296448,
+    "std": 0.06895440816879272,
+    "min": -0.33976706862449646,
+    "max": 0.03450034558773041
+  }
+}
