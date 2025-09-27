@@ -415,6 +415,5 @@ scratch/
 playground/
 sentinelhub-py/
 satellite_outputs/
-MARIDA/
 data/
-pleides/
+datasets/
